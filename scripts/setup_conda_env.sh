@@ -50,9 +50,11 @@ TORCH_CUDA_ARCH_LIST="8.0" MAX_JOBS="$NJOBS" NVCC_THREADS="$NJOBS" \
     pip install -e .
 cd "$PROJECT_ROOT"
 
+echo "Pinning compatible library versions..."
+pip install transformers==4.40.2 huggingface_hub==0.23.5 tokenizers==0.19.1
+
 echo "Installing extra libraries..."
 pip install numpy==1.25.2 fschat accelerate gcsfs scikit-learn scipy matplotlib evaluate
-pip install huggingface_hub[cli]
 
 echo ""
 echo "Done! Next steps:"
