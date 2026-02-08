@@ -1,0 +1,50 @@
+# Data and models (large files, downloaded separately)
+data/
+*.jsonl
+*.json.gz
+
+# Docker env with secrets
+docker/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+.eggs/
+
+# vllm build artifacts
+vllm-ltr/build/
+vllm-ltr/dist/
+vllm-ltr/*.egg-info/
+vllm-ltr/vllm/*.so
+
+# Benchmark outputs (regeneratable)
+vllm-ltr/benchmarks/RESULTS/
+vllm-ltr/benchmarks/BURST/
+vllm-ltr/benchmarks/SYNTHETIC/
+vllm-ltr/benchmarks/FAIR/
+vllm-ltr/benchmarks/SERVE/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# HuggingFace cache
+.cache/
+
+# Logs
+*.log
