@@ -2,6 +2,8 @@
 # bash run_single_bench.sh -s opt-xxx -r 64
 set -euo pipefail
 
+# Important fix for "OSError: [Errno 24] Too many open files" when running many requests in parallel
+ulimit -n 65536 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
