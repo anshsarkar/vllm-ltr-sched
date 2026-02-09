@@ -401,6 +401,17 @@ async def benchmark(
     print("{:<40} {:<10.2f}".format("P99 Nlatency (ms):", np.percentile(nlatencies, 99) * 1000))
     print("=" * 50)
 
+    # Summarize failed requests
+    failed = [o for o in outputs if not o.success]
+    if failed:
+        print(f"\nFailed requests: {len(failed)}/{len(outputs)}")
+        first_err = next((o.error for o in failed if o.error), None)
+        if first_err:
+            print(f"  First error:\n{first_err.rstrip()}")
+        else:
+            print("  No error details captured")
+        print()
+
     if est_lens[0] is not None:
         tau, p = scipy.stats.kendalltau(est_lens, actual_output_lens)
         print(f"Est Kendall's Tau: {tau} {p}")

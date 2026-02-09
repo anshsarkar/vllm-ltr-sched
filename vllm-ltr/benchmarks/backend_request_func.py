@@ -170,13 +170,15 @@ async def async_request_vllm(
 
                                 most_recent_timestamp = timestamp
                                 generated_text += data["choices"][0]["text"]
-                    
+
                     output.pred_score = data["choices"][0]["pred_score"]
                     output.aux_model_score = data["choices"][0]["aux_model_score"]
                     #print(data, data.__class__, output.pred_score, output.aux_model_score)
                     output.generated_text = generated_text
                     output.success = True
                     output.latency = latency
+                else:
+                    output.error = f"HTTP {response.status}: {await response.text()}"
         except Exception:
             output.success = False
             exc_info = sys.exc_info()
