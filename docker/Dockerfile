@@ -37,7 +37,6 @@ RUN pip install ${FLASH_ATTN_WHEEL} || \
 # ---------- vllm-ltr dependencies ----------
 
 # Copy requirements files first (cache-friendly: code changes won't bust this layer)
-# requirements-cuda.txt includes -r requirements-common.txt, so we need both
 COPY vllm-ltr/requirements-common.txt /tmp/requirements-common.txt
 COPY vllm-ltr/requirements-cuda.txt /tmp/requirements-cuda.txt
 
@@ -60,7 +59,6 @@ ARG TORCH_CUDA_ARCH_LIST="8.0"
 ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 
 # Note: setup.py computes actual_jobs = MAX_JOBS // NVCC_THREADS
-# So MAX_JOBS=192, NVCC_THREADS=2 → 96 parallel compilations, each using 2 nvcc threads
 ARG MAX_JOBS=192
 ENV MAX_JOBS=${MAX_JOBS}
 ARG NVCC_THREADS=2
