@@ -51,7 +51,7 @@ docker run --rm \
     -w /workspace \
     -it $DETACHED \
     vllm-ltr-dev \
-    bash -c "cp /opt/vllm-kernels/*.so /workspace/vllm-ltr/vllm/ 2>/dev/null; pip install -e /workspace/vllm-ltr --no-build-isolation --no-deps -q; exec bash"
+    bash -c "cp /opt/vllm-kernels/*.so /workspace/vllm-ltr/vllm/ && echo 'Restored CUDA kernels from image cache.' || echo 'WARNING: Failed to restore CUDA kernels — vllm imports may fail.'; exec bash"
 
 if [ -n "$DETACHED" ]; then
     echo ""
