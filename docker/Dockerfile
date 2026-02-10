@@ -70,12 +70,17 @@ ENV VLLM_INSTALL_PUNICA_KERNELS=1
 # Copy full vllm-ltr source for building CUDA kernels
 COPY vllm-ltr/ /workspace/vllm-ltr/
 
-# Build and install vllm-ltr in editable mode
+# Build vllm-ltr in editable mode
 ENV CCACHE_DIR=/root/.cache/ccache
 WORKDIR /workspace/vllm-ltr
 RUN --mount=type=cache,target=/root/.cache/ccache \
     --mount=type=cache,target=/root/.cache/pip \
     pip install -e .
+
+# Backup compiled .so files — the vllm-ltr bind mount at runtime hides them,
+# start.sh restores them before launching bash
+RUN mkdir -p /opt/vllm-kernels && \
+    find /workspace/vllm-ltr -name '*.so' -exec cp {} /opt/vllm-kernels/ \;
 
 # ---------- Runtime setup ----------
 
@@ -85,7 +90,6 @@ WORKDIR /workspace
 ENV HF_HOME=/root/.cache/huggingface
 ENV TRANSFORMERS_CACHE=/root/.cache/huggingface/hub
 
-# Default to benchmarks directory
-WORKDIR /workspace/vllm-ltr/benchmarks
+WORKDIR /workspace
 
 CMD ["/bin/bash"]
