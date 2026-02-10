@@ -44,8 +44,10 @@ pip install ninja cmake>=3.21
 
 echo "Installing vllm-ltr from source (compiles CUDA kernels)..."
 cd "$PROJECT_ROOT/vllm-ltr"
+# setup.py computes: actual_jobs = MAX_JOBS // NVCC_THREADS
+# So MAX_JOBS=nproc, NVCC_THREADS=2 → nproc/2 parallel compilations, each with 2 nvcc threads
 NJOBS=$(nproc)
-TORCH_CUDA_ARCH_LIST="8.0" MAX_JOBS="$NJOBS" NVCC_THREADS="$NJOBS" \
+TORCH_CUDA_ARCH_LIST="8.0" MAX_JOBS="$NJOBS" NVCC_THREADS=2 \
     VLLM_INSTALL_PUNICA_KERNELS=1 \
     pip install -e .
 cd "$PROJECT_ROOT"

@@ -59,9 +59,11 @@ RUN pip install numpy==1.25.2 fschat accelerate gcsfs scikit-learn scipy matplot
 ARG TORCH_CUDA_ARCH_LIST="8.0"
 ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
 
-ARG MAX_JOBS=64
+# Note: setup.py computes actual_jobs = MAX_JOBS // NVCC_THREADS
+# So MAX_JOBS=192, NVCC_THREADS=2 → 96 parallel compilations, each using 2 nvcc threads
+ARG MAX_JOBS=192
 ENV MAX_JOBS=${MAX_JOBS}
-ARG NVCC_THREADS=64
+ARG NVCC_THREADS=2
 ENV NVCC_THREADS=${NVCC_THREADS}
 ENV VLLM_INSTALL_PUNICA_KERNELS=1
 
