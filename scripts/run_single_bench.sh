@@ -20,18 +20,21 @@ while getopts "s:r:t:" opt; do
 done
 
 # ---- Scheduler config ----
-SERVER_ARGS="--model $MODEL --swap-space 16 --disable-log-requests --enable-chunked-prefill --enforce-eager"
+SERVER_ARGS="--model $MODEL --disable-log-requests --enable-chunked-prefill --enforce-eager"
+SWAP=16
 BENCH_SCHED="$SCHED"
 DATASET="llama3-8b-sharegpt-test-t1-s0-8192.jsonl"
 
 case "$SCHED" in
     fcfs)           SERVER_ARGS+=" --schedule-type fcfs" ;;
     opt-xxx)        SERVER_ARGS+=" --schedule-type opt-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-score-trainbucket10-b32/usage_config.json" ;;
-    tpt-class10-xxx) SERVER_ARGS+=" --schedule-type tpt-class10-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket820-b32/usage_config.json --swap-space 100" ;;
-    mlfq*)          SERVER_ARGS+=" --schedule-type mlfq-base0.03-thres10 --swap-space 200"; BENCH_SCHED="mlfq" ;;
-    PO|po)          SERVER_ARGS+=" --schedule-type PO --swap-space 200"; BENCH_SCHED="srtf-PO-X"; DATASET="PO-gen-llama3-8b-sharegpt-test-t1-s0-8192.jsonl" ;;
+    tpt-class10-xxx) SERVER_ARGS+=" --schedule-type tpt-class10-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket820-b32/usage_config.json"; SWAP=100 ;;
+    mlfq*)          SERVER_ARGS+=" --schedule-type mlfq-base0.03-thres10"; SWAP=100; BENCH_SCHED="mlfq" ;;
+    PO|po)          SERVER_ARGS+=" --schedule-type PO"; SWAP=100; BENCH_SCHED="srtf-PO-X"; DATASET="PO-gen-llama3-8b-sharegpt-test-t1-s0-8192.jsonl" ;;
     *)              echo "Unknown scheduler: $SCHED (options: fcfs, opt-xxx, tpt-class10-xxx, mlfq, PO)"; exit 1 ;;
 esac
+
+SERVER_ARGS+=" --swap-space $SWAP"
 
 # ---- Setup data symlinks ----
 cd "$BENCH_DIR"
