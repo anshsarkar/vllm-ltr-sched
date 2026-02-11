@@ -27,7 +27,7 @@ DATASET="llama3-8b-sharegpt-test-t1-s0-8192.jsonl"
 
 case "$SCHED" in
     fcfs)           SERVER_ARGS+=" --schedule-type fcfs" ;;
-    opt-xxx)        SERVER_ARGS+=" --schedule-type opt-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-score-trainbucket10-b32/usage_config.json"; SWAP=120 ;;
+    opt-xxx)        SERVER_ARGS+=" --schedule-type opt-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-score-trainbucket10-b32/usage_config.json"; SWAP=16 ;;
     tpt-class10-xxx) SERVER_ARGS+=" --schedule-type tpt-class10-xxx --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket820-b32/usage_config.json"; SWAP=120 ;;
     mlfq*)          SERVER_ARGS+=" --schedule-type mlfq-base0.03-thres10"; SWAP=120; BENCH_SCHED="mlfq" ;;
     PO|po)          SERVER_ARGS+=" --schedule-type PO"; SWAP=120; BENCH_SCHED="srtf-PO-X"; DATASET="PO-gen-llama3-8b-sharegpt-test-t1-s0-8192.jsonl" ;;
