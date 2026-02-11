@@ -40,7 +40,7 @@ echo ""
 echo "  5 schedulers x 6 request rates = 30 runs (~3-4 hours)"
 echo ""
 
-bash "$BENCH_DIR/bench.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_8b_run_mlfq.log"
+bash "$BENCH_DIR/bench.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_8b_run_mlfq_and_ltr.log"
 
 echo ""
 echo "=== Benchmarks complete ==="
