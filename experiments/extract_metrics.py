@@ -99,7 +99,7 @@ def plot_metrics(csv_path, output_dir):
     ax.legend(loc="best", fontsize=10)
     ax.grid(True, alpha=0.3)
 
-    output_path = os.path.join(output_dir, "mean_nlatency_comparison_lmsys_test1.png")
+    output_path = os.path.join(output_dir, "mean_nlatency_comparison_sharegpt_h100_8b.png")
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -126,7 +126,7 @@ def main():
         print(f"Error: '{folder}' is not a directory")
         sys.exit(1)
 
-    output = args.output or os.path.join(folder, "metrics_lmsys_test1.csv")
+    output = args.output or os.path.join(folder, "metrics_sharegpt_h100_8b.csv")
 
     # Get latest .pt file for each config
     latest_files = get_latest_pt_files(folder)
