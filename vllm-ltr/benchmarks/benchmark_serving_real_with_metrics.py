@@ -35,23 +35,15 @@ class BenchmarkMetrics:
     median_tpot_ms: float
     p99_tpot_ms: float
 
+# Kendall Tau        – rank correlation (concordant vs discordant pairs)
+# Spearman rho       – rank correlation penalising large displacements more
+# Accuracy           – exact match between predicted class and true class
+# MAE                – mean |predicted_class - true_class| (severity of error)
+# Top-Q1 Precision   – of the predicted-shortest 25%, how many are truly shortest 25%? (most scheduling-critical)
+# Top-Q1 Recall      – of the truly-shortest 25%, how many did we catch?
 
-def _compute_prediction_metrics(aux_model_scores, actual_output_lens,
-                                schedule_type, label_max_length=8192,
-                                default_n_bins=10):
-    """
-    Compute 5 prediction-quality metrics for LTR schedulers.
-
-    Metrics
-    -------
-    1. Kendall Tau        – rank correlation (concordant vs discordant pairs)
-    2. Spearman rho       – rank correlation penalising large displacements more
-    3. Accuracy           – exact match between predicted class and true class
-    4. MAE                – mean |predicted_class - true_class| (severity of error)
-    5. Top-Q1 Precision   – of the predicted-shortest 25%, how many are truly
-                            shortest 25%? (most scheduling-critical)
-       Top-Q1 Recall      – of the truly-shortest 25%, how many did we catch?
-
+"""
+    NOTE: 
     For classification (tpt-class<N>): the predicted class is aux_model_score
     directly (argmax output), and the true class comes from the same formula
     used in trainer.py.
@@ -59,6 +51,9 @@ def _compute_prediction_metrics(aux_model_scores, actual_output_lens,
     For ranking (opt): scores are continuous; we discretize both scores and
     actual lengths into equal-quantile bins before computing accuracy / MAE.
     """
+def _compute_prediction_metrics(aux_model_scores, actual_output_lens,
+                                schedule_type, label_max_length=8192,
+                                default_n_bins=10):
     scores  = np.array(aux_model_scores, dtype=float)
     lengths = np.array(actual_output_lens, dtype=float)
     n = len(scores)
@@ -351,6 +346,7 @@ async def benchmark(
     output_len_def: dict,
     eval_max_tpot: bool,
     metrics_log: str = "",
+    dataset: str = "",
 ):
     if backend in ASYNC_REQUEST_FUNCS:
         request_func = ASYNC_REQUEST_FUNCS.get(backend)
@@ -530,6 +526,7 @@ async def benchmark(
         if metrics_log:
             record = {
                 "timestamp":     datetime.now().isoformat(),
+                "dataset":       dataset,
                 "schedule_type": schedule_type,
                 "request_rate":  rate,
                 **pred_metrics,
@@ -636,6 +633,7 @@ def main(args: argparse.Namespace):
             output_len_def=args.output_len_def,
             eval_max_tpot=args.eval_max_tpot,
             metrics_log=metrics_log,
+            dataset=os.path.basename(args.dataset),
         ))
 
     # Save config and results to json
