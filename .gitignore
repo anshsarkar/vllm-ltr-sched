@@ -32,6 +32,7 @@ vllm-ltr/benchmarks/FAIR/
 vllm-ltr/benchmarks/SERVE/
 
 experiments/results/lmsys_h100_8b/
+experiments/results/sharegpt_h100_8b/
 # IDE
 .vscode/
 .idea/
