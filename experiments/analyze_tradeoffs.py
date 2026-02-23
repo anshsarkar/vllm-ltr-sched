@@ -476,6 +476,104 @@ def plot_throughput(agg_df, out_dir, dataset):
     plt.close()
     print(f"  Saved: {path}")
 
+
+
+def plot_e2e_by_output_quartile_bar(df, out_dir, dataset):
+    """One subplot per QPS. Grouped bars: x-axis = quartiles, groups = schedulers."""
+    rates = qps_sorted(df)
+    scheds = scheds_in_df(df)
+    q_labels = ["Q1 (short)", "Q2", "Q3", "Q4 (long)"]
+    n_scheds = len(scheds)
+    bar_width = 0.8 / n_scheds
+    x = np.arange(4)
+
+    fig, axes = make_subplots(len(rates))
+
+    for ax, rate in zip(axes, rates):
+        sub = df[df["request_rate"] == rate].copy()
+        try:
+            sub["quartile"] = pd.qcut(sub["output_len"], 4, labels=False, duplicates="drop")
+        except ValueError:
+            ax.set_title(f"{rate} req/s (skipped)", fontsize=11)
+            continue
+
+        for si, sched in enumerate(scheds):
+            sdf = sub[sub["scheduler"] == sched]
+            means = []
+            for q in range(4):
+                qdata = sdf[sdf["quartile"] == q]["e2e_latency"].dropna()
+                means.append(qdata.mean() * 1000 if len(qdata) > 0 else 0)
+            offset = (si - (n_scheds - 1) / 2) * bar_width
+            bars = ax.bar(x + offset, means, bar_width * 0.9,
+                          color=SCHED_COLORS[sched], alpha=0.85, label=sched)
+            for bar, v in zip(bars, means):
+                if v > 0:
+                    ax.text(bar.get_x() + bar.get_width() / 2, v,
+                            f"{v/1000:.1f}s", ha="center", va="bottom", fontsize=6)
+
+        ax.set_title(f"{rate} req/s", fontsize=11)
+        ax.set_xticks(x)
+        ax.set_xticklabels(q_labels, fontsize=9)
+        ax.set_ylabel("Mean E2E Latency (ms)", fontsize=10)
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3, axis="y")
+
+    hide_unused(axes, len(rates))
+    fig.suptitle("E2E Latency by Output-Length Quartile",
+                 fontsize=13, fontweight="bold")
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"{dataset}_e2e_by_output_quartile_bar.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {path}")
+
+
+def plot_e2e_by_output_quartile_cdf(df, out_dir, dataset):
+    """One figure per scheduler. Each figure has QPS subplots with 4 quartile CDF lines."""
+    rates = qps_sorted(df)
+    q_labels = ["Q1 (short)", "Q2", "Q3", "Q4 (long)"]
+    q_colors = ["#66BB6A", "#42A5F5", "#FFA726", "#EF5350"]
+    scheds = scheds_in_df(df)
+
+    for sched in scheds:
+        fig, axes = make_subplots(len(rates))
+
+        for ax, rate in zip(axes, rates):
+            sub = df[(df["request_rate"] == rate) & (df["scheduler"] == sched)].copy()
+            try:
+                sub["quartile"] = pd.qcut(sub["output_len"], 4, labels=False, duplicates="drop")
+            except ValueError:
+                ax.set_title(f"{rate} req/s (skipped)", fontsize=11)
+                continue
+
+            for q in range(4):
+                vals = np.sort(sub[sub["quartile"] == q]["e2e_latency"].dropna().values * 1000)
+                if len(vals) == 0:
+                    continue
+                cdf = np.arange(1, len(vals) + 1) / len(vals)
+                ax.plot(vals, cdf,
+                        color=q_colors[q],
+                        linewidth=2,
+                        label=q_labels[q])
+
+            ax.set_title(f"{rate} req/s", fontsize=11)
+            ax.set_xlabel("E2E Latency (ms)", fontsize=10)
+            ax.set_ylabel("CDF", fontsize=10)
+            ax.legend(fontsize=9)
+            ax.grid(True, alpha=0.3)
+            ax.set_ylim(0, 1.05)
+
+        hide_unused(axes, len(rates))
+        sched_tag = sched.replace(" ", "_").replace("-", "_").lower()
+        fig.suptitle(f"E2E Latency CDF by Output Quartile — {sched}",
+                     fontsize=13, fontweight="bold")
+        plt.tight_layout()
+        path = os.path.join(out_dir, f"{dataset}_e2e_quartile_cdf_{sched_tag}.png")
+        plt.savefig(path, dpi=150, bbox_inches="tight")
+        plt.close()
+        print(f"  Saved: {path}")
+
+
 def plot_finish_time_vs_output_scatter(df, out_dir, dataset):
     rates = rep_rates(qps_sorted(df))
     scheds = scheds_in_df(df)
@@ -567,6 +665,8 @@ def main():
         ("Finish time vs output len",    lambda: plot_finish_time_vs_output(df, out_dir, dataset)),
         ("Finish time vs output len (scatter)", lambda: plot_finish_time_vs_output_scatter(df, out_dir, dataset)),
         ("Throughput comparison",        lambda: plot_throughput(agg_df, out_dir, dataset)),
+        ("E2E by output quartile (bar)", lambda: plot_e2e_by_output_quartile_bar(df, out_dir, dataset)),
+        ("E2E by output quartile (CDF)", lambda: plot_e2e_by_output_quartile_cdf(df, out_dir, dataset)),
     ]
 
     for name, fn in plots:
