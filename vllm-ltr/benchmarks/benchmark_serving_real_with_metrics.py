@@ -122,12 +122,29 @@ def _compute_prediction_metrics(aux_model_scores, actual_output_lens,
     n_true_q1        = int(np.sum(true_q1))
     precision_q1     = tp / n_pred_q1  if n_pred_q1 > 0 else 0.0
     recall_q1        = tp / n_true_q1  if n_true_q1 > 0 else 0.0
+    f1_q1            = (2 * precision_q1 * recall_q1 / (precision_q1 + recall_q1)
+                        if (precision_q1 + recall_q1) > 0 else 0.0)
 
     print(f"{'Top-Q1 Precision:':<40} {precision_q1:.4f}"
           f"  ({tp}/{n_pred_q1} predicted-short are truly short)")
     print(f"{'Top-Q1 Recall:':<40} {recall_q1:.4f}"
           f"  ({tp}/{n_true_q1} truly-short were predicted short)")
+    print(f"{'Top-Q1 F1:':<40} {f1_q1:.4f}")
     print("-" * 50)
+
+    return {
+        "kendall_tau":       float(tau),
+        "kendall_tau_p":     float(p_tau),
+        "spearman_rho":      float(rho),
+        "spearman_rho_p":    float(p_rho),
+        "accuracy":          float(accuracy),
+        "mae":               float(mae),
+        "top_q1_precision":  float(precision_q1),
+        "top_q1_recall":     float(recall_q1),
+        "top_q1_f1":         float(f1_q1),
+        "num_labels":        int(num_labels),
+        "n_requests":        int(n),
+    }
 
 
 def sample_requests(
@@ -333,6 +350,7 @@ async def benchmark(
     output_len: int,
     output_len_def: dict,
     eval_max_tpot: bool,
+    metrics_log: str = "",
 ):
     if backend in ASYNC_REQUEST_FUNCS:
         request_func = ASYNC_REQUEST_FUNCS.get(backend)
@@ -504,11 +522,20 @@ async def benchmark(
     if aux_model_scores[0] is not None and (
         schedule_type.startswith("opt") or schedule_type.startswith("tpt")
     ):
-        _compute_prediction_metrics(
+        pred_metrics = _compute_prediction_metrics(
             aux_model_scores=aux_model_scores,
             actual_output_lens=actual_output_lens,
             schedule_type=schedule_type,
         )
+        if metrics_log:
+            record = {
+                "timestamp":     datetime.now().isoformat(),
+                "schedule_type": schedule_type,
+                "request_rate":  rate,
+                **pred_metrics,
+            }
+            with open(metrics_log, "a") as f:
+                f.write(json.dumps(record) + "\n")
 
     result = {
         "duration": benchmark_duration,
@@ -579,6 +606,14 @@ def main(args: argparse.Namespace):
     args.num_prompts = int(args.num_prompts)
     input_requests = sample_requests(args.dataset, args.num_prompts, args.ignore_limit, args.output_len, eval(args.output_len_def), tokenizer, args.schedule_type)
 
+    # Resolve metrics log path: explicit arg > result_dir default > cwd default
+    if args.metrics_log:
+        metrics_log = args.metrics_log
+    elif args.result_dir:
+        os.makedirs(args.result_dir, exist_ok=True)
+        metrics_log = os.path.join(args.result_dir, "prediction_metrics.jsonl")
+    else:
+        metrics_log = "prediction_metrics.jsonl"
 
     benchmark_result = asyncio.run(
         benchmark(
@@ -600,6 +635,7 @@ def main(args: argparse.Namespace):
             output_len=args.output_len,
             output_len_def=args.output_len_def,
             eval_max_tpot=args.eval_max_tpot,
+            metrics_log=metrics_log,
         ))
 
     # Save config and results to json
@@ -755,6 +791,13 @@ if __name__ == "__main__":
         default="SERVE",
         help="Specify directory to save benchmark json results."
         "If not specified, results are saved in the current directory.",
+    )
+    parser.add_argument(
+        "--metrics-log",
+        type=str,
+        default="",
+        help="Path to append per-run prediction-quality metrics (JSONL). "
+             "Defaults to <result-dir>/prediction_metrics.jsonl.",
     )
 
     args = parser.parse_args()
