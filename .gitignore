@@ -1,7 +1,5 @@
 # Data and models (large files, downloaded separately)
 data/
-*.jsonl
-*.json.gz
 
 # Docker env with secrets
 docker/.env
