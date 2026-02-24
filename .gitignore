@@ -1,5 +1,6 @@
 # Data and models (large files, downloaded separately)
 data/
+*.jsonl
 
 # Docker env with secrets
 docker/.env
@@ -31,6 +32,8 @@ vllm-ltr/benchmarks/SERVE/
 
 experiments/results/lmsys_h100_8b/
 experiments/results/sharegpt_h100_8b/
+experiments/results/lmsys_8b_h100_metrics/
+experiments/results/sharegpt_8b_h100_metrics/
 # IDE
 .vscode/
 .idea/
@@ -48,4 +51,4 @@ Thumbs.db
 .cache/
 
 # Logs
-# *.log
+*.log
