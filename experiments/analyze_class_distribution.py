@@ -1,23 +1,7 @@
 #!/usr/bin/env python3
-"""
-Analyze class distribution in training/test datasets for LTR models.
 
-Reads the JSONL dataset files used for training, computes the label
-distribution for different bucket sizes (group_size), and reports
-class imbalance statistics.
+# python experiments/analyze_class_distribution.py /home/cc/vllm-ltr-sched/data/datasets/Llama3-Trace/llama3-8b-sharegpt-train-t1-s0-8192.jsonl --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --label-max-length 8192 --group-sizes 820 --show-split
 
-This helps answer: "Is the classification model doing badly because
-it was trained on an imbalanced dataset?"
-
-Usage:
-  python experiments/analyze_class_distribution.py <dataset.jsonl> --tokenizer meta-llama/Meta-Llama-3-8B-Instruct
-
-  # Analyze with specific bucket sizes
-  python experiments/analyze_class_distribution.py <dataset.jsonl> --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --group-sizes 1 10 100 820
-
-  # Analyze the train/test split (90/10 as in trainer.py)
-  python experiments/analyze_class_distribution.py <dataset.jsonl> --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --show-split
-"""
 
 import argparse
 import json

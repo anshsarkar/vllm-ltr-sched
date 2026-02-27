@@ -5,7 +5,6 @@ data/
 # Docker env with secrets
 docker/.env
 papers/
-
 # Python
 __pycache__/
 *.py[cod]

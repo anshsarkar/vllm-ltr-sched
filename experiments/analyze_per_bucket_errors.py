@@ -1,22 +1,6 @@
 #!/usr/bin/env python3
-"""
-Per-bucket prediction error analysis for LTR-Ranking vs LTR-Classification.
 
-Reads the .pt result files (which contain aux_model_scores and actual_output_lens)
-and computes per-bucket metrics comparing both models side by side.
-
-Output per QPS:
-  1. LTR-Ranking bucket table (True#, Pred#, Correct#, Kendall tau)
-  2. LTR-Classification bucket table A — same buckets as ranking (+ MAE)
-  3. LTR-Classification bucket table B — native 820-token class buckets (+ P/R/F1)
-
-Also exports a CSV with per-request actual vs predicted lengths for both models.
-
-Usage:
-  python experiments/analyze_per_bucket_errors.py experiments/results/sharegpt_8b_h100_metrics
-  python experiments/analyze_per_bucket_errors.py experiments/results/lmsys_8b_h100_metrics
-  python experiments/analyze_per_bucket_errors.py experiments/results/sharegpt_8b_h100_metrics experiments/results/lmsys_8b_h100_metrics
-"""
+# python experiments/analyze_per_bucket_errors.py experiments/results/sharegpt_8b_h100_metrics experiments/results/lmsys_8b_h100_metrics
 
 import argparse
 import csv
