@@ -13,7 +13,6 @@ import numpy as np
 
 
 def load_dataset(path):
-    """Load JSONL dataset, return list of dicts with 'prompt' and 'generated'."""
     dataset = []
     with open(path, "r", encoding="utf-8") as f:
         for line in f:
@@ -24,7 +23,6 @@ def load_dataset(path):
 
 
 def get_output_lengths(dataset, tokenizer):
-    """Tokenize 'generated' field and return output lengths in tokens."""
     generated_texts = [d["generated"] for d in dataset]
     # Batch tokenize for efficiency
     batch_size = 512
@@ -37,13 +35,12 @@ def get_output_lengths(dataset, tokenizer):
 
 
 def len2label(length, label_max_length, label_group_size):
-    """Replicate the label formula from trainer.py RankingDataset.__len2label__."""
     return label_max_length // label_group_size - min(label_max_length, length) // label_group_size
 
 
 def analyze_distribution(output_lens, label_max_length, label_group_size, split_name="Full"):
-    """Analyze and print class distribution for given bucket parameters."""
-    num_labels = label_max_length // label_group_size
+    import math
+    num_labels = math.ceil(label_max_length / label_group_size)
     labels = np.array([len2label(l, label_max_length, label_group_size) for l in output_lens])
 
     counts = Counter(labels)
@@ -111,7 +108,6 @@ def analyze_distribution(output_lens, label_max_length, label_group_size, split_
 
 
 def print_length_statistics(output_lens, split_name="Full"):
-    """Print basic statistics about raw output lengths."""
     print(f"\n  Raw Output Length Statistics ({split_name}):")
     print(f"    N:      {len(output_lens)}")
     print(f"    Mean:   {np.mean(output_lens):.1f}")
@@ -124,16 +120,6 @@ def print_length_statistics(output_lens, split_name="Full"):
     print(f"    Q90:    {np.percentile(output_lens, 90):.0f}")
     print(f"    Q99:    {np.percentile(output_lens, 99):.0f}")
 
-    # Show distribution in log-scale buckets
-    log_edges = [0, 16, 64, 256, 1024, float("inf")]
-    log_labels = ["1-16", "17-64", "65-256", "257-1024", "1025+"]
-    print(f"\n    Log-scale distribution:")
-    for i, label in enumerate(log_labels):
-        mask = (output_lens > log_edges[i]) & (output_lens <= log_edges[i + 1])
-        count = int(mask.sum())
-        pct = count / len(output_lens) * 100
-        bar = "█" * int(pct / 2)
-        print(f"      {label:>10}: {count:>6} ({pct:>5.1f}%)  {bar}")
 
 
 def main():
