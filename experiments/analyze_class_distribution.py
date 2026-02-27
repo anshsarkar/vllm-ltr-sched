@@ -76,9 +76,14 @@ def analyze_distribution(output_lens, label_max_length, label_group_size, split_
         # => min(lml, length) // gs = max_label_val - label
         # => length ≈ (max_label_val - label) * gs ± gs
         upper = (max_label_val - label) * label_group_size
-        lower = max(0, upper - label_group_size + 1)
+        lower = max(1, upper - label_group_size + 1)
         if label == 0:
             upper = label_max_length  # label 0 captures longest
+        if upper == 0:
+            # Last label when num_labels > max_label_val (ceil vs floor)
+            # Captures lengths 1 to (label_group_size - 1)
+            upper = label_group_size - 1
+            lower = 1
 
         bar_len = int(count / max_count * bar_max) if max_count > 0 else 0
         bar = "█" * bar_len
