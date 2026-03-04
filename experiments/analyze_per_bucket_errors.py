@@ -9,6 +9,9 @@ import re
 import sys
 from collections import defaultdict
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from scipy import stats
@@ -382,6 +385,10 @@ def print_analysis(folder, results, out_dir):
     # Collect all rates
     all_rates = sorted(set(r["rate"] for r in results))
 
+    # Collect metrics for plotting
+    ranking_plot_data = {}
+    classification_plot_data = {}
+
     for rate in all_rates:
         print(f"\n{'━' * 80}")
         print(f"  QPS = {rate} req/s")
@@ -394,6 +401,7 @@ def print_analysis(folder, results, out_dir):
                 rows, overall_tau = compute_ranking_bucket_table(
                     run["scores"], run["output_lens"])
                 print_ranking_table(rows, overall_tau, rate, len(run["scores"]))
+                ranking_plot_data[rate] = (rows, overall_tau)
 
         # ── LTR-Classification ──
         for sched in class_scheds:
@@ -404,6 +412,7 @@ def print_analysis(folder, results, out_dir):
                     run["scores"], run["output_lens"], sched)
                 print_classification_table_a(rows, overall_tau, overall_mae,
                                              rate, len(run["scores"]))
+                classification_plot_data[rate] = (rows, overall_tau, overall_mae)
 
                 # Table B: native class buckets
                 native = compute_native_class_table(
@@ -414,6 +423,147 @@ def print_analysis(folder, results, out_dir):
     # Export CSV
     print(f"\n{'─' * 80}")
     export_csv(folder, results, out_dir)
+
+    # Generate plots
+    plot_analysis(dataset_name, ranking_plot_data, classification_plot_data, out_dir)
+
+
+# ── Plotting ────────────────────────────────────────────────────────────────
+
+COLOR_RANKING = "#FF5722"
+COLOR_CLASSIFICATION = "#4CAF50"
+COLOR_TRUE = "#9E9E9E"
+
+
+def _make_subplots(n, max_cols=3, cell_w=5, cell_h=4):
+    """Create a dynamic grid of subplots."""
+    ncols = min(max_cols, n)
+    nrows = (n + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(cell_w * ncols, cell_h * nrows))
+    axes_flat = np.atleast_1d(np.array(axes)).flatten()
+    for i in range(n, len(axes_flat)):
+        axes_flat[i].set_visible(False)
+    return fig, axes_flat
+
+
+def plot_analysis(dataset_name, ranking_data, classification_data, out_dir):
+    """Generate comparison plots.
+
+    Args:
+        dataset_name: e.g. "sharegpt_8b_h100_metrics"
+        ranking_data: dict[rate] -> (rows, overall_tau)
+        classification_data: dict[rate] -> (rows, overall_tau, overall_mae)
+        out_dir: output directory
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    rates = sorted(set(list(ranking_data.keys()) + list(classification_data.keys())))
+    if not rates:
+        return
+
+    # ── Figure 1: Kendall Tau Comparison ──────────────────────────────────
+    fig, axes = _make_subplots(len(rates))
+    x = np.arange(len(BUCKET_LABELS))
+    bar_w = 0.35
+
+    for idx, rate in enumerate(rates):
+        ax = axes[idx]
+
+        rank_taus = []
+        rank_overall = None
+        if rate in ranking_data:
+            rows, overall_tau = ranking_data[rate]
+            rank_taus = [r["kendall_tau"] if not np.isnan(r["kendall_tau"]) else 0
+                         for r in rows]
+            rank_overall = overall_tau
+
+        cls_taus = []
+        cls_overall = None
+        if rate in classification_data:
+            rows, overall_tau, _ = classification_data[rate]
+            cls_taus = [r["kendall_tau"] if not np.isnan(r["kendall_tau"]) else 0
+                        for r in rows]
+            cls_overall = overall_tau
+
+        if rank_taus:
+            ax.bar(x - bar_w / 2, rank_taus, bar_w, color=COLOR_RANKING,
+                   label="LTR-Ranking", alpha=0.85)
+        if cls_taus:
+            ax.bar(x + bar_w / 2, cls_taus, bar_w, color=COLOR_CLASSIFICATION,
+                   label="LTR-Classification", alpha=0.85)
+
+        if rank_overall is not None:
+            ax.axhline(rank_overall, color=COLOR_RANKING, linestyle="--",
+                       linewidth=1, alpha=0.7)
+        if cls_overall is not None:
+            ax.axhline(cls_overall, color=COLOR_CLASSIFICATION, linestyle="--",
+                       linewidth=1, alpha=0.7)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(BUCKET_LABELS, fontsize=8, rotation=30, ha="right")
+        ax.set_ylabel("Kendall Tau", fontsize=10)
+        ax.set_title(f"{rate} req/s", fontsize=11, fontweight="bold")
+        ax.legend(fontsize=8)
+        ax.grid(True, alpha=0.3, axis="y")
+
+    fig.suptitle(
+        f"{dataset_name} — Per-Bucket Kendall Tau: Ranking vs Classification",
+        fontsize=13, fontweight="bold",
+    )
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"{dataset_name}_kendall_tau_comparison.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved plot: {path}")
+
+    # ── Figure 2: Classification MAE + Distribution ──────────────────────
+    cls_rates = sorted(classification_data.keys())
+    if not cls_rates:
+        return
+
+    n = len(cls_rates)
+    fig, axes = plt.subplots(2, n, figsize=(5 * n, 8), squeeze=False)
+
+    for col, rate in enumerate(cls_rates):
+        rows, overall_tau, overall_mae = classification_data[rate]
+
+        # Top row: MAE per bucket
+        ax_mae = axes[0][col]
+        maes = [r["mae_tokens"] if not np.isnan(r["mae_tokens"]) else 0
+                for r in rows]
+        ax_mae.bar(x, maes, 0.6, color=COLOR_CLASSIFICATION, alpha=0.85)
+        ax_mae.axhline(overall_mae, color=COLOR_CLASSIFICATION, linestyle="--",
+                       linewidth=1, alpha=0.7, label=f"Overall: {overall_mae:.0f}")
+        ax_mae.set_xticks(x)
+        ax_mae.set_xticklabels(BUCKET_LABELS, fontsize=8, rotation=30, ha="right")
+        ax_mae.set_ylabel("MAE (tokens)", fontsize=10)
+        ax_mae.set_title(f"{rate} req/s", fontsize=11, fontweight="bold")
+        ax_mae.legend(fontsize=8)
+        ax_mae.grid(True, alpha=0.3, axis="y")
+
+        # Bottom row: True# vs Pred#
+        ax_dist = axes[1][col]
+        true_counts = [r["true_count"] for r in rows]
+        pred_counts = [r["pred_count"] for r in rows]
+        ax_dist.bar(x - bar_w / 2, true_counts, bar_w, color=COLOR_TRUE,
+                    label="True#", alpha=0.85)
+        ax_dist.bar(x + bar_w / 2, pred_counts, bar_w, color=COLOR_CLASSIFICATION,
+                    label="Pred#", alpha=0.85)
+        ax_dist.set_xticks(x)
+        ax_dist.set_xticklabels(BUCKET_LABELS, fontsize=8, rotation=30, ha="right")
+        ax_dist.set_ylabel("Count", fontsize=10)
+        ax_dist.set_title(f"{rate} req/s", fontsize=11, fontweight="bold")
+        ax_dist.legend(fontsize=8)
+        ax_dist.grid(True, alpha=0.3, axis="y")
+
+    fig.suptitle(
+        f"{dataset_name} — Classification: MAE (top) and Bucket Distribution (bottom)",
+        fontsize=13, fontweight="bold",
+    )
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"{dataset_name}_classification_mae.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved plot: {path}")
 
 
 def main():
