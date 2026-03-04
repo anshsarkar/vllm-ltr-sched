@@ -356,6 +356,46 @@ async def benchmark(
     if schedule_type == "fcfs" or schedule_type == "fcfs-origin" or schedule_type.startswith("sjf-predictor-") or schedule_type.startswith("mlfq") or schedule_type.startswith("predictor-") or schedule_type.startswith("opt") or schedule_type.startswith("xpt") or schedule_type.startswith("tpt"):
 
         pass
+    elif schedule_type.startswith("sjf-noisy-"):
+        # Idea 1 bench sim: noisy oracle with directional corruption
+        # sjf-noisy-las: corrupt top 20% longest → small values (long-as-short)
+        # sjf-noisy-sal: corrupt bottom 20% shortest → large values (short-as-long)
+        CORRUPT_FRAC = 0.20
+        actual_lens = [req[4] for req in input_requests]
+        sorted_lens = sorted(actual_lens)
+        n_corrupt = int(CORRUPT_FRAC * len(input_requests))
+
+        if schedule_type == "sjf-noisy-las":
+            # Long-as-short: longest requests get small est_tokens
+            threshold = sorted_lens[-(n_corrupt)] if n_corrupt > 0 else float("inf")
+            for rid, req in enumerate(input_requests):
+                req = list(req)
+                if req[4] >= threshold:
+                    # Assign a small random value (bottom 10% of distribution)
+                    req[3] = random.randint(1, max(1, int(sorted_lens[len(sorted_lens) // 10])))
+                else:
+                    req[3] = req[4]  # oracle for non-corrupted
+                input_requests[rid] = tuple(req)
+        elif schedule_type == "sjf-noisy-sal":
+            # Short-as-long: shortest requests get large est_tokens
+            threshold = sorted_lens[n_corrupt] if n_corrupt > 0 else 0
+            for rid, req in enumerate(input_requests):
+                req = list(req)
+                if req[4] <= threshold:
+                    # Assign a large random value (top 10% of distribution)
+                    req[3] = random.randint(int(sorted_lens[-len(sorted_lens) // 10]), sorted_lens[-1])
+                else:
+                    req[3] = req[4]  # oracle for non-corrupted
+                input_requests[rid] = tuple(req)
+        else:
+            assert False, f"Unknown noisy variant: {schedule_type}"
+
+        corrupted = sum(1 for r in input_requests if r[3] != r[4])
+        real = [req[4] for req in input_requests]
+        ests = [req[3] for req in input_requests]
+        tau, p = scipy.stats.kendalltau(ests, real)
+        print(f"Noisy oracle ({schedule_type}): corrupted {corrupted}/{len(input_requests)} "
+              f"({corrupted/len(input_requests):.1%}), Kendall tau: {tau:.4f} (p={p:.3e})")
     elif schedule_type == "sjf" or schedule_type.startswith("srtf") or schedule_type.startswith("sjf-preempt-") or schedule_type.startswith("sjf-ranking-") or schedule_type.startswith("sjf-file-") :
         #only work when output_len==-1
         if schedule_type.startswith("sjf-file-"):
