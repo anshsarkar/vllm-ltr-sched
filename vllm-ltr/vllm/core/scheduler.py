@@ -1544,7 +1544,10 @@ class Scheduler:
                 running_scheduled.swapped_out) == 0:
             remaining_swapped, swapped_in = self._schedule_swapped(
                 self.swapped, budget, curr_loras, fcfs_policy)
-        #print("prefill")
+        # Sort waiting queue for SJF before scheduling prefills
+        if self.schedule_type == "sjf" and self.waiting:
+            self.waiting = deque(sorted(self.waiting, key=lambda req: req.sampling_params.est_tokens))
+
         # Schedule new prefills.
         remaining_waiting, prefills = self._schedule_prefills(
             self.waiting, budget, curr_loras, enable_chunking=True)
