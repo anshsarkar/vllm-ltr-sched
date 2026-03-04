@@ -16,16 +16,22 @@ import pandas as pd
 # ── Style (matches analyze_tradeoffs.py) ─────────────────────────────────────
 
 SCHED_MAP = {
-    "opt-xxx":        "LTR-Ranking",
+    "fcfs":            "FCFS",
+    "sjf":             "Oracle SJF",
+    "opt-xxx":         "LTR-Ranking",
     "tpt-class10-xxx": "LTR-Classification",
 }
 
 SCHED_COLORS = {
+    "FCFS":                 "#2196F3",
+    "Oracle SJF":           "#9C27B0",
     "LTR-Ranking":          "#FF5722",
     "LTR-Classification":   "#4CAF50",
 }
 
 SCHED_MARKERS = {
+    "FCFS":                 "o",
+    "Oracle SJF":           "D",
     "LTR-Ranking":          "s",
     "LTR-Classification":   "^",
 }
