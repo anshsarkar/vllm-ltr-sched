@@ -469,12 +469,9 @@ class Scheduler:
             num_running_tokens = self._get_num_new_tokens(
                 seq_group, SequenceStatus.RUNNING, enable_chunking, budget)
 
-            # With SJF reordering the waiting queue, the mix of running
-            # requests may exhaust the token budget before all running
-            # requests are processed.  Treat this as a preemption trigger
-            # instead of crashing.
-            if num_running_tokens == 0:
-                break
+            # We can have up to 1 running prefill at any given time in running
+            # queue, which means we can guarantee chunk size is at least 1.
+            assert num_running_tokens != 0
             num_running_seqs = seq_group.get_max_num_running_seqs()
 
             running_queue.popleft()
@@ -1547,10 +1544,6 @@ class Scheduler:
                 running_scheduled.swapped_out) == 0:
             remaining_swapped, swapped_in = self._schedule_swapped(
                 self.swapped, budget, curr_loras, fcfs_policy)
-        # Sort waiting queue for SJF before scheduling prefills
-        if self.schedule_type == "sjf" and self.waiting:
-            self.waiting = deque(sorted(self.waiting, key=lambda req: req.sampling_params.est_tokens))
-
         # Schedule new prefills.
         remaining_waiting, prefills = self._schedule_prefills(
             self.waiting, budget, curr_loras, enable_chunking=True)
