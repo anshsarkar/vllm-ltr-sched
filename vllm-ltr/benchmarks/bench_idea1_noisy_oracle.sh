@@ -15,7 +15,7 @@ RATES="2 4 8 16 32 64"
 # Launch SJF server (handles all three client-side schedule types)
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
     --model $MODEL --swap-space 16 --disable-log-requests \
-    --schedule-type sjf --enable-chunked-prefill --enforce-eager &
+    --schedule-type sjf --enforce-eager &
 sleep 120
 
 # --- Oracle SJF baseline ---

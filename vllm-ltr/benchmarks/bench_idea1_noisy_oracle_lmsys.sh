@@ -16,7 +16,7 @@ PORT=3343
 # Launch SJF server (handles all three client-side schedule types)
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
     --model $MODEL --swap-space 16 --disable-log-requests \
-    --schedule-type sjf --enable-chunked-prefill --enforce-eager --port $PORT &
+    --schedule-type sjf --enforce-eager --port $PORT &
 sleep 120
 
 # --- Oracle SJF baseline ---
