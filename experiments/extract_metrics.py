@@ -77,6 +77,7 @@ def plot_metrics(csv_path, output_dir):
     # Friendly scheduler names for plots
     sched_names = {
         "fcfs": "FCFS",
+        "sjf": "Oracle SJF",
         "srtf-PO-X": "Oracle (SRTF-PO)",
         "opt-xxx": "LTR-Ranking",
         "tpt-class10-xxx": "LTR-Classification",
