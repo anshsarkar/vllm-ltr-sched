@@ -8,6 +8,7 @@ ulimit -n 65536 2>/dev/null || true
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 BENCH_DIR="$PROJECT_ROOT/vllm-ltr/benchmarks"
+DATA_DIR="$PROJECT_ROOT/data"
 
 cd "$BENCH_DIR"
 
