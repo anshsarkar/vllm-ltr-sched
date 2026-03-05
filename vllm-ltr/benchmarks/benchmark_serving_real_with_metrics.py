@@ -396,6 +396,21 @@ async def benchmark(
         tau, p = scipy.stats.kendalltau(ests, real)
         print(f"Noisy oracle ({schedule_type}): corrupted {corrupted}/{len(input_requests)} "
               f"({corrupted/len(input_requests):.1%}), Kendall tau: {tau:.4f} (p={p:.3e})")
+    elif schedule_type.startswith("sjf-totalwork-"):
+        # Idea 2 bench sim: total-work-aware oracle
+        # est_tokens = output_len + alpha * prompt_len
+        alpha = float(schedule_type.split("-")[-1])
+        for rid, req in enumerate(input_requests):
+            req = list(req)
+            req[3] = req[4] + alpha * req[1]  # output_len + alpha * prompt_len
+            input_requests[rid] = tuple(req)
+
+        real = [req[4] for req in input_requests]
+        ests = [req[3] for req in input_requests]
+        tau, p = scipy.stats.kendalltau(ests, real)
+        print(f"Total-work oracle ({schedule_type}, alpha={alpha}): "
+              f"Kendall tau vs output_len: {tau:.4f} (p={p:.3e}), "
+              f"mean est_tokens: {np.mean(ests):.1f}, mean output_len: {np.mean(real):.1f}")
     elif schedule_type == "sjf" or schedule_type.startswith("srtf") or schedule_type.startswith("sjf-preempt-") or schedule_type.startswith("sjf-ranking-") or schedule_type.startswith("sjf-file-") :
         #only work when output_len==-1
         if schedule_type.startswith("sjf-file-"):
