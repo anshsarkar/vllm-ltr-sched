@@ -67,7 +67,7 @@ def get_latest_pt_files(folder):
     return latest
 
 
-def plot_metrics(csv_path, output_dir):
+def plot_metrics(csv_path, output_dir, tag="results"):
     """Generate normalized latency comparison plot from CSV."""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -83,6 +83,11 @@ def plot_metrics(csv_path, output_dir):
         "tpt-class10-xxx": "LTR-Classification",
         "mlfq-base0.03-thres10": "MLFQ",
         "mlfq": "MLFQ",
+        "sjf-noisy-las": "Noisy Oracle (Long-as-Short)",
+        "sjf-noisy-sal": "Noisy Oracle (Short-as-Long)",
+        "sjf-totalwork-0.1": "Total-Work (α=0.1)",
+        "sjf-totalwork-0.5": "Total-Work (α=0.5)",
+        "sjf-totalwork-1.0": "Total-Work (α=1.0)",
     }
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -100,7 +105,7 @@ def plot_metrics(csv_path, output_dir):
     ax.legend(loc="best", fontsize=10)
     ax.grid(True, alpha=0.3)
 
-    output_path = os.path.join(output_dir, "mean_nlatency_comparison_sharegpt_h100_8b_sjf.png")
+    output_path = os.path.join(output_dir, f"mean_nlatency_comparison_{tag}.png")
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -127,7 +132,10 @@ def main():
         print(f"Error: '{folder}' is not a directory")
         sys.exit(1)
 
-    output = args.output or os.path.join(folder, "metrics_sharegpt_h100_8b_sjf.csv")
+    folder_name = os.path.basename(os.path.normpath(folder))
+    analysis_dir = os.path.join("experiments", "analysis")
+    os.makedirs(analysis_dir, exist_ok=True)
+    output = args.output or os.path.join(analysis_dir, f"metrics_{folder_name}.csv")
 
     # Get latest .pt file for each config
     latest_files = get_latest_pt_files(folder)
@@ -177,9 +185,8 @@ def main():
     print(f"Wrote {len(rows)} rows to {output}")
 
     if args.plot:
-        analysis_dir = "experiments/analysis"
         print(f"\nGenerating plots in {analysis_dir}/")
-        plot_metrics(output, analysis_dir)
+        plot_metrics(output, analysis_dir, tag=folder_name)
         print("Done!")
 
 
