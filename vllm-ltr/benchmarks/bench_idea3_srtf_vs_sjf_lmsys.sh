@@ -6,7 +6,7 @@
 #
 # Two phases, two servers:
 #   Phase 1: SJF server + sjf client (oracle, static)
-#   Phase 2: SRTF server + srtf-PO-X client (oracle, dynamic)
+#   Phase 2: SRTF server + srtf-oracle client (oracle, dynamic)
 
 MODEL="meta-llama/Meta-Llama-3-8B-Instruct"
 DATASET="lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl"
@@ -33,14 +33,14 @@ sleep 60
 # === Phase 2: Oracle SRTF (dynamic re-ordering) ===
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
     --model $MODEL --swap-space 16 --disable-log-requests \
-    --schedule-type srtf-PO-X --enable-chunked-prefill --enforce-eager --port $PORT &
+    --schedule-type srtf-oracle --enable-chunked-prefill --enforce-eager --port $PORT &
 sleep 120
 
 for r in $RATES; do
     python benchmark_serving_real_with_metrics.py \
         --backend vllm --model $MODEL --tokenizer $MODEL \
         --dataset $DATASET --num-prompts -1 --request-time 60 \
-        --schedule-type srtf-PO-X --output-len -1 --request-rate $r \
+        --schedule-type srtf-oracle --output-len -1 --request-rate $r \
         --result-dir RESULTS --port $PORT
 done
 

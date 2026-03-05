@@ -88,6 +88,7 @@ def plot_metrics(csv_path, output_dir, tag="results"):
         "sjf-totalwork-0.1": "Total-Work (α=0.1)",
         "sjf-totalwork-0.5": "Total-Work (α=0.5)",
         "sjf-totalwork-1.0": "Total-Work (α=1.0)",
+        "srtf-oracle": "Oracle SRTF (dynamic)",
     }
 
     fig, ax = plt.subplots(figsize=(10, 6))
