@@ -1,8 +1,8 @@
 # Data and models (large files, downloaded separately)
 data/
-*.jsonl
-# Logs
-*.log
+# *.jsonl
+# # Logs
+# *.log
 
 # Docker env with secrets
 docker/.env
