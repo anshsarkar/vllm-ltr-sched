@@ -566,6 +566,90 @@ def plot_analysis(dataset_name, ranking_data, classification_data, out_dir):
     print(f"  Saved plot: {path}")
 
 
+def plot_combined_mae(folders, rate, out_dir):
+    """Single plot: classification MAE per native class bucket for multiple datasets at one rate."""
+    os.makedirs(out_dir, exist_ok=True)
+
+    dataset_colors = ["#4CAF50", "#2196F3", "#FF9800", "#E53935"]
+    n_datasets = len(folders)
+
+    # First pass: determine native class labels from the first valid run
+    native_labels = None
+    all_native = []
+    for folder in folders:
+        results = load_pt_data(folder)
+        cls_runs = [r for r in results
+                    if r["scheduler"].startswith("tpt")
+                    and abs(r["rate"] - rate) < 0.1]
+        if not cls_runs:
+            print(f"  No classification data at {rate} req/s in {folder}")
+            all_native.append(None)
+            continue
+
+        run = cls_runs[0]
+        native = compute_native_class_table(run["scores"], run["output_lens"], run["scheduler"])
+        all_native.append(native)
+        if native and native_labels is None:
+            native_labels = [f"{r['lower']}-{r['upper']}" for r in native["rows"]]
+
+    if native_labels is None:
+        print("  No classification data found in any folder")
+        return
+
+    # Filter to classes that have data in at least one dataset
+    num_classes = len(native_labels)
+    has_data = [False] * num_classes
+    for native in all_native:
+        if native is None:
+            continue
+        for c, r in enumerate(native["rows"]):
+            if r["true_count"] > 0:
+                has_data[c] = True
+    active_classes = [c for c in range(num_classes) if has_data[c]]
+
+    x = np.arange(len(active_classes))
+    bar_w = 0.7 / max(n_datasets, 1)
+    fig, ax = plt.subplots(figsize=(max(12, len(active_classes) * 1.2), 6))
+
+    for di, (folder, native) in enumerate(zip(folders, all_native)):
+        if native is None:
+            continue
+
+        maes = [native["rows"][c]["mae_tokens"] if not np.isnan(native["rows"][c]["mae_tokens"]) else 0
+                for c in active_classes]
+        overall_mae = float(np.mean([
+            native["rows"][c]["mae_tokens"] for c in range(num_classes)
+            if native["rows"][c]["true_count"] > 0 and not np.isnan(native["rows"][c]["mae_tokens"])
+        ]))
+        dataset_label = os.path.basename(os.path.normpath(folder)).replace("_metrics", "").replace("_", " ").title()
+        offset = (di - (n_datasets - 1) / 2) * bar_w
+        bars = ax.bar(x + offset, maes, bar_w, color=dataset_colors[di % len(dataset_colors)],
+                      alpha=0.85, label=f"{dataset_label} (overall: {overall_mae:.0f})")
+
+        for bar, v in zip(bars, maes):
+            if v > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2, v + 5,
+                        f"{v:.0f}", ha="center", va="bottom", fontsize=7)
+
+    tick_labels = [native_labels[c] for c in active_classes]
+    ax.set_xticks(x)
+    ax.set_xticklabels(tick_labels, fontsize=9, rotation=45, ha="right")
+    ax.set_xlabel("Output Length Range (tokens)", fontsize=12)
+    ax.set_ylabel("MAE (tokens)", fontsize=12)
+    ax.set_title(
+        f"LTR-Classification: MAE by Native Class Bucket ({rate:.0f} req/s)",
+        fontsize=13, fontweight="bold",
+    )
+    ax.legend(fontsize=10)
+    ax.grid(True, alpha=0.3, axis="y")
+
+    plt.tight_layout()
+    path = os.path.join(out_dir, f"combined_classification_mae_r{rate:.0f}.png")
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved combined MAE plot: {path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Per-bucket prediction error analysis for LTR models"
@@ -582,7 +666,18 @@ def main():
         "--out-dir", type=str, default="experiments/analysis/predictions",
         help="Output directory for CSV files"
     )
+    parser.add_argument(
+        "--combined-mae", action="store_true",
+        help="Plot a single combined MAE chart for all folders at --rate"
+    )
     args = parser.parse_args()
+
+    if args.combined_mae:
+        if args.rate is None:
+            print("Error: --combined-mae requires --rate")
+            sys.exit(1)
+        plot_combined_mae(args.input_folders, args.rate, args.out_dir)
+        return
 
     for folder in args.input_folders:
         if not os.path.isdir(folder):
