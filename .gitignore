@@ -1,6 +1,8 @@
 # Data and models (large files, downloaded separately)
 data/
-*.jsonl
+# *.jsonl
+# # Logs
+# *.log
 
 # Docker env with secrets
 docker/.env
@@ -51,5 +53,4 @@ Thumbs.db
 # HuggingFace cache
 .cache/
 
-# Logs
-*.log
+
