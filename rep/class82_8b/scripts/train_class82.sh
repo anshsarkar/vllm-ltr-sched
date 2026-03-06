@@ -8,6 +8,7 @@ TRAIN_DIR="$PROJECT_ROOT/vllm-ltr/train"
 DATA_DIR="$PROJECT_ROOT/data/datasets/Llama3-Trace"
 
 cd "$TRAIN_DIR"
+export PYTHONPATH="$TRAIN_DIR:${PYTHONPATH:-}"
 
 # Symlink training data from downloaded location into jsonfiles/
 if [ -d "$DATA_DIR" ]; then
