@@ -1,19 +1,3 @@
-"""
-Analyze class distribution for classification models on benchmark datasets.
-
-Uses the same label logic as the trainer (trainer.py):
-    label = label_max_length // label_group_size - min(label_max_length, length) // label_group_size
-
-Output length is computed by tokenizing the 'generated' field — this is how it's
-done everywhere in the codebase:
-  - trainer.py line 57:  origin_len = len(self.tokenizer(item['generated'])['input_ids'])
-  - benchmark_serving_real_with_metrics.py line 292:
-        output_len = len(tokenizer(outputs[i].generated_text).input_ids)
-
-Datasets come from LLM-ltr/Llama3-Trace (downloaded via scripts/download_data.sh).
-Each jsonl line has {"prompt": ..., "generated": ...} — no precomputed lengths.
-"""
-
 import json
 import argparse
 import math
@@ -23,14 +7,13 @@ from transformers import AutoTokenizer
 
 
 def len2label(length, label_max_length, label_group_size):
-    """Exact replication of RankingDataset.__len2label__ from trainer.py"""
     return label_max_length // label_group_size - min(label_max_length, length) // label_group_size
 
 
 def label2token_range(label, label_max_length, label_group_size):
-    """Invert len2label: given a class label, return the (lower, upper] token range."""
-    tok_upper = (label_max_length // label_group_size - label) * label_group_size
-    tok_lower = max(0, tok_upper - label_group_size)
+    k = label_max_length // label_group_size - label
+    tok_lower = k * label_group_size
+    tok_upper = min((k + 1) * label_group_size, label_max_length)
     return tok_lower, tok_upper
 
 
@@ -43,12 +26,6 @@ def load_dataset(path):
 
 
 def tokenize_lengths(data, tokenizer):
-    """Tokenize the 'generated' field and return token lengths.
-
-    This is exactly how output length is computed in:
-      - trainer.py:         len(self.tokenizer(item['generated'])['input_ids'])
-      - benchmark_serving:  len(tokenizer(outputs[i].generated_text).input_ids)
-    """
     generated_texts = [item['generated'] for item in data]
     batch_size = 512
     lengths = []
@@ -60,7 +37,6 @@ def tokenize_lengths(data, tokenizer):
 
 
 def print_distribution(token_lengths, group_size, label_max_length):
-    """Print class distribution stats for a given bucket size."""
     num_classes = math.ceil(label_max_length / group_size)
     labels = [len2label(l, label_max_length, group_size) for l in token_lengths]
     counts = Counter(labels)
