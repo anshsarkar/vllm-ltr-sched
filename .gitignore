@@ -1,5 +1,5 @@
 # Data and models (large files, downloaded separately)
-data/
+/data/
 *.jsonl
 # Logs
 *.log
