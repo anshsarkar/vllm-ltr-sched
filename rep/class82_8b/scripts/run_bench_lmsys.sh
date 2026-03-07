@@ -51,7 +51,7 @@ echo ""
 echo "  4 schedulers x 6 request rates = 24 runs"
 echo ""
 
-bash "$BENCH_DIR/bench-rep-lmsys.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_rep_lmsys_run.log"
+bash "$BENCH_DIR/bench-rep-lmsys-class82.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_rep_lmsys_run.log"
 
 echo ""
 echo "=== LMSYS Rep Benchmarks complete ==="

@@ -52,7 +52,7 @@ echo ""
 echo "  6 schedulers x 6 request rates = 35 runs (mlfq rate 64 skipped)"
 echo ""
 
-bash "$BENCH_DIR/bench-rep.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_rep_sharegpt_run.log"
+bash "$BENCH_DIR/bench-rep-class82.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_rep_sharegpt_run.log"
 
 echo ""
 echo "=== ShareGPT Rep Benchmarks complete ==="
