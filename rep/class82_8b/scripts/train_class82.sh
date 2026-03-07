@@ -38,7 +38,7 @@ python trainer.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-lmsys-class-trainbucket100-b4 \
     --batch-size 4 \
     --label-group-size 100 \
-    --epoch 10 \
+    --epoch 5  \
     2>&1 | tee "$LOG_DIR/train_lmsys_class82.log"
 
 # ShareGPT
@@ -49,7 +49,7 @@ python trainer.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-sharegpt-class-trainbucket100-b4 \
     --batch-size 4 \
     --label-group-size 100 \
-    --epoch 10 \
+    --epoch 5 \
     2>&1 | tee "$LOG_DIR/train_sharegpt_class82.log"
 
 echo "=== Training complete ==="
