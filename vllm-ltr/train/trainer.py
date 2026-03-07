@@ -116,8 +116,8 @@ def run():
 
     train_dataset = RankingDataset(dataset[:int(0.9 * len(dataset))], llama3_tokenizer, max_length=config.model.max_length, label_max_length=args.label_max_length, label_group_size=args.label_group_size)
     test_dataset = RankingTestDataset(dataset[int(0.9 * len(dataset)):], llama3_tokenizer, max_length=config.model.max_length, label_max_length=args.label_max_length)
-    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
-    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
 
     optimizer = torch.optim.Adam(predictor.model.parameters(), lr=args.lr, weight_decay=args.wc)
     optimizer.zero_grad()
