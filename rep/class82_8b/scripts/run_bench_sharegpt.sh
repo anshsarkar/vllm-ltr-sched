@@ -19,6 +19,17 @@ python -c "import vllm; print(f'  vLLM version: {vllm.__version__}')"
 # ---- Setup data symlinks ----
 source "$PROJECT_ROOT/scripts/setup_bench_data.sh"
 
+# ---- Symlink trained models from train dir into benchmarks ----
+TRAIN_MODEL_DIR="$PROJECT_ROOT/vllm-ltr/train/MODEL/results"
+if [ -d "$TRAIN_MODEL_DIR" ]; then
+    mkdir -p "$BENCH_DIR/MODEL/results"
+    for d in "$TRAIN_MODEL_DIR"/*/; do
+        [ -d "$d" ] || continue
+        base=$(basename "$d")
+        [ -e "$BENCH_DIR/MODEL/results/$base" ] || ln -sf "$d" "$BENCH_DIR/MODEL/results/$base"
+    done
+fi
+
 # Verify required datasets
 for dataset in "llama3-8b-sharegpt-test-t1-s0-8192.jsonl" "PO-gen-llama3-8b-sharegpt-test-t1-s0-8192.jsonl"; do
     if [ ! -f "$BENCH_DIR/$dataset" ]; then
@@ -30,7 +41,7 @@ done
 for config in \
     "MODEL/results/opt-125m-llama3-8b-sharegpt-score-trainbucket10-b32/usage_config.json" \
     "MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket820-b32/usage_config.json" \
-    "MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket100-b32/usage_config.json"; do
+    "MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket100-b4/usage_config.json"; do
     [ -f "$BENCH_DIR/$config" ] || echo "  WARNING: $config not found!"
 done
 
@@ -38,7 +49,7 @@ done
 mkdir -p "$BENCH_DIR/RESULTS"
 
 echo ""
-echo "  6 schedulers x 6 request rates = 36 runs"
+echo "  6 schedulers x 6 request rates = 35 runs (mlfq rate 64 skipped)"
 echo ""
 
 bash "$BENCH_DIR/bench-rep.sh" 2>&1 | tee "$BENCH_DIR/RESULTS/bench_rep_sharegpt_run.log"
