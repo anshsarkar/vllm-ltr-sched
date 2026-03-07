@@ -40,7 +40,7 @@ experiments/results/lmsys_h100_sjf/
 experiments/results/sjf_idea1/
 experiments/results/idea2_input_len/
 experiments/results/idea3_srtf_sjf/
-experiments/results/sharegpt_class82_h100/
+experiments/results/sharegpt_class82_h100_opt125/
 rep/info
 # IDE
 .vscode/
