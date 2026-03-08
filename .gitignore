@@ -1,8 +1,8 @@
 # Data and models (large files, downloaded separately)
 /data/
-# *.jsonl
-# # Logs
-# *.log
+*.jsonl
+# Logs
+*.log
 
 # Docker env with secrets
 docker/.env
@@ -43,6 +43,7 @@ experiments/results/idea3_srtf_sjf/
 experiments/results/sharegpt_class82_h100_opt125/
 experiments/results/lmsys_class82_h100_opt125/
 experiments/results/lmsys_class82_h100_opt350/
+experiments/results/sharegpt_class82_h100_opt350/
 rep/class82_8b/README.md
 rep/info
 # IDE
