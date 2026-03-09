@@ -134,7 +134,7 @@ def main():
         sys.exit(1)
 
     folder_name = os.path.basename(os.path.normpath(folder))
-    analysis_dir = os.path.join("experiments", "analysis")
+    analysis_dir = os.path.join("experiments", "analysis", "rep_results")
     os.makedirs(analysis_dir, exist_ok=True)
     output = args.output or os.path.join(analysis_dir, f"metrics_{folder_name}.csv")
 
