@@ -66,7 +66,7 @@ class PercentileDataset(Dataset):
         return len(self.data)
 
     def __len2label__(self, length):
-        # higher label = shorter output (consistent with existing convention)
+        # higher label = shorter output following the authors convention
         return self.num_classes - 1 - int(np.searchsorted(self.boundaries, length))
 
     def __getitem__(self, idx):
