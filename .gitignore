@@ -45,6 +45,7 @@ experiments/results/lmsys_class82_h100_opt125/
 experiments/results/lmsys_class82_h100_opt350/
 experiments/results/sharegpt_class82_h100_opt350/
 experiments/results/lmsys_percentile_125m_model_10/
+experiments/results/sharegpt_percentile_125m_model_10/
 rep/class82_8b/README.md
 rep/info
 # IDE
