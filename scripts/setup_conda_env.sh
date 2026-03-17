@@ -58,6 +58,9 @@ pip install transformers==4.40.2 huggingface_hub==0.23.5 tokenizers==0.19.1
 echo "Installing extra libraries..."
 pip install numpy==1.25.2 fschat accelerate gcsfs scikit-learn scipy matplotlib evaluate
 
+echo "Reinstalling huggingface_hub to fix potential tokenizers version conflict..."
+pip install huggingface_hub==0.23.5
+
 echo ""
 echo "Done! Next steps:"
 echo "  conda activate $ENV_NAME"
