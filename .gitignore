@@ -48,6 +48,7 @@ experiments/results/lmsys_percentile_125m_model_10/
 experiments/results/sharegpt_percentile_125m_model_10/
 rep/class82_8b/README.md
 rep/info
+/overleaf_files/
 # IDE
 .vscode/
 .idea/
@@ -63,5 +64,3 @@ Thumbs.db
 
 # HuggingFace cache
 .cache/
-
-
