@@ -12,18 +12,18 @@ kill $!
 sleep 60
 
 
-# #PO new (Oracle SRTF)
-# CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 120 --disable-log-requests --schedule-type PO --enable-chunked-prefill --enforce-eager --port 3343 &
-# sleep 120
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 2 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 4 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 8 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 16 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 32 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
-# python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 64 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+#PO new (Oracle SRTF)
+CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 120 --disable-log-requests --schedule-type PO --enable-chunked-prefill --enforce-eager --port 3343 &
+sleep 120
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 2 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 4 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 8 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 16 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 32 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
+python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset PO-gen-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-PO-X --output-len -1 --request-rate 64 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
 
-# kill $!
-# sleep 60
+kill $!
+sleep 60
 
 
 #opt-xxx (LTR score/ranking predictor, OPT-125m, authors')
@@ -97,7 +97,7 @@ sleep 60
 
 
 #mlfq
-# CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 125 --disable-log-requests --schedule-type mlfq-base0.03-thres10 --enable-chunked-prefill --enforce-eager --port 3343 &
+# CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 180 --disable-log-requests --schedule-type mlfq-base0.03-thres10 --enable-chunked-prefill --enforce-eager --port 3343 &
 # sleep 120
 # python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type mlfq --output-len -1 --request-rate 2 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
 # python benchmark_serving_real.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --num-prompts -1 --request-time 60 --schedule-type mlfq --output-len -1 --request-rate 4 --result-dir ../../rep/final_results/benchmarks/results/lmsys --port 3343
