@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
-# python rep/final_results/analysis/extract_class_distributions.py --lmsys-dataset data/datasets/Llama3-Trace/lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --sharegpt-dataset data/datasets/Llama3-Trace/llama3-8b-sharegpt-train-t1-s0-8192.jsonl --output rep/final_results/analysis/class_distributions.csv
-
+# python rep/final_results/analysis/extract_class_distributions.py \
+#     --lmsys-dataset data/datasets/Llama3-Trace/lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c20000:30000-rFalse.jsonl \
+#     --sharegpt-dataset data/datasets/Llama3-Trace/llama3-8b-sharegpt-train-t1-s0-8192.jsonl \
+#     --output rep/final_results/analysis/class_distributions.csv
 
 import argparse
 import csv
 import json
 import math
 import sys
+from collections import Counter
 
 import numpy as np
 from transformers import AutoTokenizer
 
 LABEL_MAX_LENGTH = 8192
 
-# ── Uniform-bucket labeling (from trainer.py) ────────────────────────────
-def len2label_uniform(length, num_labels, group_size):
-    return min(num_labels - 1, max(0,
-        LABEL_MAX_LENGTH // group_size
-        - min(LABEL_MAX_LENGTH, int(length)) // group_size))
+# ── Uniform-bucket labeling (exactly matching trainer.py) ─────────────────
+def len2label_uniform(length, label_group_size):
+    """Matches trainer.py RankingDataset.__len2label__ exactly."""
+    label = LABEL_MAX_LENGTH // label_group_size - min(LABEL_MAX_LENGTH, length) // label_group_size
+    return label
 
-def label2range_uniform(label, num_labels, group_size):
-    k = LABEL_MAX_LENGTH // group_size - label
-    tok_lo = k * group_size
-    tok_hi = min((k + 1) * group_size, LABEL_MAX_LENGTH)
+def label2range_uniform(label, label_group_size):
+    """Token range [lo, hi) for a given uniform label."""
+    k = LABEL_MAX_LENGTH // label_group_size - label
+    tok_lo = k * label_group_size
+    tok_hi = min((k + 1) * label_group_size, LABEL_MAX_LENGTH)
     return tok_lo, tok_hi
 
-# ── Percentile labeling (from trainer_percentile.py) ─────────────────────
+# ── Percentile labeling (exactly matching trainer_percentile.py) ──────────
 def compute_percentile_boundaries(lengths, num_classes):
     percentiles = np.linspace(0, 100, num_classes + 1)[1:-1]
     boundaries = np.percentile(lengths, percentiles)
@@ -33,6 +37,7 @@ def compute_percentile_boundaries(lengths, num_classes):
     return boundaries
 
 def len2label_pctl(length, boundaries):
+    """Matches trainer_percentile.py PercentileDataset.__len2label__ exactly."""
     num_classes = len(boundaries) + 1
     return num_classes - 1 - int(np.searchsorted(boundaries, length))
 
@@ -46,14 +51,16 @@ def label2range_pctl(label, boundaries, max_len):
     else:
         return int(boundaries[idx - 1]), int(boundaries[idx])
 
-# ── Predictor configs ────────────────────────────────────────────────────
+# ── Predictor configs (matching actual training scripts) ──────────────────
+# type="uniform": param = label_group_size (as passed to trainer.py)
+# type="pctl":    param = num_classes (as passed to trainer_percentile.py)
 PREDICTORS = [
-    # (scheduler_name, label_for_display, type, param)
-    ("tpt-class10-xxx",  "Classification (#Buckets=10)",     "uniform", 10),
-    ("tpt-class82-xxx",  "Classification (Bucket Size=100)", "uniform", 82),
-    ("tpt-width10-xxx",  "Classification (Bucket Size=10)",  "uniform", 819),
-    ("tpt-pctl10-xxx",   "Classification (Percentile, CE)",  "pctl",    10),
-    ("tpt-pctl10-mse-xxx","Classification (Percentile, MSE)","pctl",    10),
+    # (scheduler_name,      display_label,                      type,      param)
+    ("tpt-class10-xxx",     "Classification (#Buckets=10)",     "uniform", 820),   # label_group_size=820 → num_labels=ceil(8192/820)=10
+    ("tpt-class82-xxx",     "Classification (Bucket Size=100)", "uniform", 100),   # label_group_size=100 → num_labels=ceil(8192/100)=82
+    ("tpt-width10-xxx",     "Classification (Bucket Size=10)",  "uniform", 10),    # label_group_size=10  → num_labels=ceil(8192/10)=820
+    ("tpt-pctl10-xxx",      "Classification (Percentile, CE)",  "pctl",    10),
+    ("tpt-pctl10-mse-xxx",  "Classification (Percentile, MSE)", "pctl",    10),
 ]
 
 def load_dataset(path):
@@ -72,34 +79,36 @@ def tokenize_lengths(data, tokenizer):
         lengths.extend(len(ids) for ids in encoded['input_ids'])
     return np.array(lengths)
 
-def get_distribution(token_lengths, pred_type, param):
-    """Returns list of (bucket_id, count, tok_lo, tok_hi)."""
+def get_distribution_uniform(token_lengths, label_group_size):
+    """Returns list of (bucket_id, count, tok_lo, tok_hi) for uniform bucketing."""
+    num_labels = math.ceil(LABEL_MAX_LENGTH / label_group_size)
+    labels = [len2label_uniform(l, label_group_size) for l in token_lengths]
+    counts = Counter(labels)
+
     rows = []
-    if pred_type == "uniform":
-        num_labels = param
-        group_size = LABEL_MAX_LENGTH // num_labels
-        labels = [len2label_uniform(l, num_labels, group_size) for l in token_lengths]
-        from collections import Counter
-        counts = Counter(labels)
-        for c in range(num_labels):
-            lo, hi = label2range_uniform(c, num_labels, group_size)
-            rows.append((c, counts.get(c, 0), lo, hi))
-    elif pred_type == "pctl":
-        num_classes_req = param
-        boundaries = compute_percentile_boundaries(token_lengths, num_classes_req)
-        actual_num = len(boundaries) + 1
-        labels = [len2label_pctl(l, boundaries) for l in token_lengths]
-        from collections import Counter
-        counts = Counter(labels)
-        max_len = int(token_lengths.max())
-        for c in range(actual_num):
-            lo, hi = label2range_pctl(c, boundaries, max_len)
-            rows.append((c, counts.get(c, 0), lo, hi))
+    for c in range(num_labels):
+        lo, hi = label2range_uniform(c, label_group_size)
+        rows.append((c, counts.get(c, 0), lo, hi))
+    return rows
+
+def get_distribution_pctl(token_lengths, num_classes_req):
+    """Returns list of (bucket_id, count, tok_lo, tok_hi) for percentile bucketing."""
+    boundaries = compute_percentile_boundaries(token_lengths, num_classes_req)
+    actual_num = len(boundaries) + 1
+    labels = [len2label_pctl(l, boundaries) for l in token_lengths]
+    counts = Counter(labels)
+    max_len = int(token_lengths.max())
+
+    rows = []
+    for c in range(actual_num):
+        lo, hi = label2range_pctl(c, boundaries, max_len)
+        rows.append((c, counts.get(c, 0), lo, hi))
     return rows
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lmsys-dataset", type=str, required=True)
+    parser.add_argument("--lmsys-dataset", type=str, required=True,
+                        help="LMSYS training JSONL (should be c20000:30000 for 8B)")
     parser.add_argument("--sharegpt-dataset", type=str, required=True)
     parser.add_argument("--tokenizer", type=str, default="meta-llama/Meta-Llama-3-8B-Instruct")
     parser.add_argument("--output", type=str, default="class_distributions.csv")
@@ -123,8 +132,18 @@ def main():
               f"mean={token_lengths.mean():.1f}")
 
         for sched, label, pred_type, param in PREDICTORS:
-            dist = get_distribution(token_lengths, pred_type, param)
+            if pred_type == "uniform":
+                dist = get_distribution_uniform(token_lengths, label_group_size=param)
+            elif pred_type == "pctl":
+                dist = get_distribution_pctl(token_lengths, num_classes_req=param)
+            else:
+                continue
+
             total = sum(r[1] for r in dist)
+            num_labels = len(dist)
+            print(f"  {sched}: group_size={param}, num_labels={num_labels}, "
+                  f"non-zero={sum(1 for r in dist if r[1] > 0)}")
+
             for bucket_id, count, tok_lo, tok_hi in dist:
                 pct = 100.0 * count / total if total > 0 else 0
                 all_rows.append({
