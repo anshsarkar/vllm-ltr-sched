@@ -180,6 +180,10 @@ def run():
                         f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
                     logits = outputs.view(-1, predictor.model.num_labels)
                     loss = loss_func(logits, labels.view(logits.size(0)))
+                elif args.loss == 'mse':
+                    logits = outputs.view(-1, predictor.model.num_labels)
+                    pred_scores = logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
+                    loss = loss_func(pred_scores, labels.view(-1).float())
                 else:
                     loss = loss_func(outputs.view(1, -1), labels)
 
