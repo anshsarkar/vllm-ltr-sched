@@ -215,6 +215,9 @@ def run():
 
                 if args.loss == 'crossentropy':
                     predicted_scores = outputs.argmax(dim=-1).tolist()
+                elif args.loss == 'mse':
+                    logits = outputs.view(-1, predictor.model.num_labels)
+                    predicted_scores = (logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)).tolist()
                 else:
                     predicted_scores = outputs.squeeze().tolist()
 
