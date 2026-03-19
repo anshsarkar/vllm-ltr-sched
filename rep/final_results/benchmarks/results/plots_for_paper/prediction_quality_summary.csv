@@ -1,10 +1,12 @@
 dataset,scheduler,label,num_labels,abs_tau,accuracy_pct,n_requests
 lmsys,opt-xxx,Ranking,10,0.6429,N/A,3840
+lmsys,srtf-PO-X,Oracle (Pre-run),10,0.5666,N/A,3840
 lmsys,tpt-class10-xxx,Classification (#Buckets=10),10,0.2647,95.7,3840
 lmsys,tpt-class82-xxx,Classification (Bucket Size=100),82,0.5574,43.5,3840
 lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",10,0.5744,N/A,3840
 lmsys,tpt-width10-xxx,Classification (Bucket Size=10),819,0.526,14.7,3840
 sharegpt,opt-xxx,Ranking,10,0.5014,N/A,3840
+sharegpt,srtf-PO-X,Oracle (Pre-run),10,0.3416,N/A,3840
 sharegpt,tpt-class10-xxx,Classification (#Buckets=10),10,0.2068,94.4,3840
 sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),82,0.4324,19.9,3840
 sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",10,0.4352,N/A,3840

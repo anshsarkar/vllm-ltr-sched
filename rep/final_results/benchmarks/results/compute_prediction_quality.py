@@ -12,15 +12,17 @@ from scipy.stats import kendalltau
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 IDX_OUTPUT_LENS = 4
+IDX_EST_LENS = 6
 IDX_AUX_SCORES = 8
 
 LABEL_MAX_LENGTH = 8192
 
-# Schedulers to include (no PO — it's an oracle, not a predictor)
-PRED_SCHEDULERS = {"opt-xxx", "tpt-class10-xxx", "tpt-class82-xxx",
+# Schedulers to include
+PRED_SCHEDULERS = {"srtf-PO-X", "opt-xxx", "tpt-class10-xxx", "tpt-class82-xxx",
                    "tpt-width10-xxx", "tpt-pctl10-xxx", "tpt-pctl10-mse-xxx"}
 
 SCHED_LABELS = {
+    "srtf-PO-X":        "Oracle (Pre-run)",
     "opt-xxx":           "Ranking",
     "tpt-class10-xxx":   "Classification (#Buckets=10)",
     "tpt-class82-xxx":   "Classification (Bucket Size=100)",
@@ -110,8 +112,13 @@ def process_dataset(dataset_dir, dataset_name):
 
         path = os.path.join(dataset_dir, fname)
         data = torch.load(path, map_location="cpu", weights_only=False)
-        scores = data[IDX_AUX_SCORES]
         lengths = data[IDX_OUTPUT_LENS]
+
+        # PO uses est_lens (pre-run oracle estimates), not aux_model_scores
+        if sched == "srtf-PO-X":
+            scores = data[IDX_EST_LENS]
+        else:
+            scores = data[IDX_AUX_SCORES]
 
         if scores is None or all(s is None for s in scores):
             continue

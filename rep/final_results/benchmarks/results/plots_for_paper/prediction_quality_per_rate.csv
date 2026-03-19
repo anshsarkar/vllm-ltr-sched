@@ -5,6 +5,12 @@ lmsys,opt-xxx,Ranking,8.0,-0.6460581102895281,,10,480
 lmsys,opt-xxx,Ranking,16.0,-0.6498899890400932,,10,960
 lmsys,opt-xxx,Ranking,32.0,-0.642982472880552,,10,1920
 lmsys,opt-xxx,Ranking,64.0,-0.6429484067070332,,10,3840
+lmsys,srtf-PO-X,Oracle (Pre-run),2.0,0.6285241215435136,,10,120
+lmsys,srtf-PO-X,Oracle (Pre-run),4.0,0.612518949374692,,10,240
+lmsys,srtf-PO-X,Oracle (Pre-run),8.0,0.5972716091036956,,10,480
+lmsys,srtf-PO-X,Oracle (Pre-run),16.0,0.5942027520526837,,10,960
+lmsys,srtf-PO-X,Oracle (Pre-run),32.0,0.5766816044372509,,10,1920
+lmsys,srtf-PO-X,Oracle (Pre-run),64.0,0.5665943712521474,,10,3840
 lmsys,tpt-class10-xxx,Classification (#Buckets=10),2.0,-0.43420501705566145,0.8833333333333333,10,120
 lmsys,tpt-class10-xxx,Classification (#Buckets=10),4.0,-0.36047306569097154,0.925,10,240
 lmsys,tpt-class10-xxx,Classification (#Buckets=10),8.0,-0.2961876766701558,0.9458333333333333,10,480
@@ -35,6 +41,12 @@ sharegpt,opt-xxx,Ranking,8.0,-0.5149545476195294,,10,480
 sharegpt,opt-xxx,Ranking,16.0,-0.5171096848191704,,10,960
 sharegpt,opt-xxx,Ranking,32.0,-0.5033534473129435,,10,1920
 sharegpt,opt-xxx,Ranking,64.0,-0.5014278189945289,,10,3840
+sharegpt,srtf-PO-X,Oracle (Pre-run),2.0,0.3642669976697715,,10,120
+sharegpt,srtf-PO-X,Oracle (Pre-run),4.0,0.3730341751235513,,10,240
+sharegpt,srtf-PO-X,Oracle (Pre-run),8.0,0.32633179203196844,,10,480
+sharegpt,srtf-PO-X,Oracle (Pre-run),16.0,0.33329226611898993,,10,960
+sharegpt,srtf-PO-X,Oracle (Pre-run),32.0,0.32192075251783325,,10,1920
+sharegpt,srtf-PO-X,Oracle (Pre-run),64.0,0.3416490644717581,,10,3840
 sharegpt,tpt-class10-xxx,Classification (#Buckets=10),2.0,-0.162082592935526,0.9416666666666667,10,120
 sharegpt,tpt-class10-xxx,Classification (#Buckets=10),4.0,-0.15979547960451562,0.9583333333333334,10,240
 sharegpt,tpt-class10-xxx,Classification (#Buckets=10),8.0,-0.20354007384908407,0.9416666666666667,10,480
