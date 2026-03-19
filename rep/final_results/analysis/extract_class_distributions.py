@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# python rep/final_results/analysis/extract_class_distributions.py --lmsys-dataset data/llama3-8b-lmsys-test-t1-s0-8192.jsonl --sharegpt-dataset data/llama3-8b-sharegpt-test-t1-s0-8192.jsonl --output rep/final_results/analysis/class_distributions.csv
+# python rep/final_results/analysis/extract_class_distributions.py --lmsys-dataset data/datasets/Llama3-Trace/lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl --sharegpt-dataset data/datasets/Llama3-Trace/llama3-8b-sharegpt-train-t1-s0-8192.jsonl --output rep/final_results/analysis/class_distributions.csv
+
 
 import argparse
 import csv
