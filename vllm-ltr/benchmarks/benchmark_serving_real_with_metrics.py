@@ -589,6 +589,24 @@ async def benchmark(
             with open(metrics_log, "a") as f:
                 f.write(json.dumps(record) + "\n")
 
+    # ── PO (pre-run oracle): log est_lens vs actual_output_lens ────────────
+    if schedule_type.startswith("srtf") and est_lens[0] is not None and metrics_log:
+        tau, p_tau = scipy.stats.kendalltau(est_lens, actual_output_lens)
+        rho, p_rho = scipy.stats.spearmanr(est_lens, actual_output_lens)
+        record = {
+            "timestamp":     datetime.now().isoformat(),
+            "dataset":       dataset,
+            "schedule_type": schedule_type,
+            "request_rate":  rate,
+            "kendall_tau":   float(tau),
+            "kendall_tau_p": float(p_tau),
+            "spearman_rho":  float(rho),
+            "spearman_rho_p":float(p_rho),
+            "n_requests":    len(est_lens),
+        }
+        with open(metrics_log, "a") as f:
+            f.write(json.dumps(record) + "\n")
+
     result = {
         "duration": benchmark_duration,
         "completed": metrics.completed,
