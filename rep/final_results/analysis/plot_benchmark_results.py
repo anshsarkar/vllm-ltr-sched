@@ -91,9 +91,15 @@ def extract_metrics(folder):
     return rows
 
 
-def plot_metrics(csv_path, output_dir, tag):
+AUTHOR_SCHEDULERS = {"fcfs", "mlfq", "mlfq-base0.03-thres10", "srtf-PO-X", "opt-xxx", "tpt-class10-xxx"}
+
+
+def plot_metrics(csv_path, output_dir, tag, authors_only=False):
     os.makedirs(output_dir, exist_ok=True)
     df = pd.read_csv(csv_path)
+
+    if authors_only:
+        df = df[df["scheduler"].isin(AUTHOR_SCHEDULERS)]
 
     fig, ax = plt.subplots(figsize=(10, 6))
     for sched in sorted(df["scheduler"].unique()):
@@ -106,11 +112,13 @@ def plot_metrics(csv_path, output_dir, tag):
 
     ax.set_xlabel("Request Rate (req/s)", fontsize=12)
     ax.set_ylabel("Mean Normalized Latency (ms/token)", fontsize=12)
-    ax.set_title(f"Scheduler Comparison: Mean Normalized Latency ({tag})", fontsize=14, fontweight="bold")
+    suffix = " (Authors' Schedulers)" if authors_only else ""
+    ax.set_title(f"Scheduler Comparison: Mean Normalized Latency ({tag}){suffix}", fontsize=14, fontweight="bold")
     ax.legend(loc="best", fontsize=9)
     ax.grid(True, alpha=0.3)
 
-    output_path = os.path.join(output_dir, f"mean_nlatency_comparison_{tag}.png")
+    fname = f"mean_nlatency_comparison_{tag}_authors_only.png" if authors_only else f"mean_nlatency_comparison_{tag}.png"
+    output_path = os.path.join(output_dir, fname)
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -122,6 +130,7 @@ def main():
     parser.add_argument("input_folder", help="Folder containing .pt result files")
     parser.add_argument("-o", "--output", default=None, help="Output CSV path")
     parser.add_argument("--no-plot", action="store_true", help="Skip plot generation")
+    parser.add_argument("--authors-only", action="store_true", help="Plot only the authors' original schedulers")
     args = parser.parse_args()
 
     folder = args.input_folder
@@ -154,7 +163,7 @@ def main():
 
     if not args.no_plot:
         print("\nGenerating plot...")
-        plot_metrics(output, results_dir, tag=tag)
+        plot_metrics(output, results_dir, tag=tag, authors_only=args.authors_only)
         print("Done!")
 
 
