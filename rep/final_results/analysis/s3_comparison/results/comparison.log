@@ -1,0 +1,86 @@
+/home/cc/miniconda3/envs/vllm-ltr/lib/python3.10/site-packages/huggingface_hub/file_download.py:1132: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+Loading tokenizer...
+Loading Alpaca (S³)...
+  51974 samples
+Loading ShareGPT...
+  10000 samples
+Loading LMSYS...
+  10000 samples
+
+=================================================================
+  Output Length Statistics
+=================================================================
+
+  Alpaca (S³) (n=51974)
+    mean=56  median=41  std=55  min=2  max=965
+    Q25=14  Q75=84  Q90=121  Q99=251
+
+  ShareGPT (n=10000)
+    mean=421  median=383  std=267  min=2  max=3223
+    Q25=244  Q75=561  Q90=742  Q99=1227
+
+  LMSYS (n=10000)
+    mean=292  median=214  std=292  min=2  max=3364
+    Q25=39  Q75=467  Q90=670  Q99=1205
+
+=================================================================
+  10 Uniform Bucket Distribution (each dataset's own config)
+=================================================================
+
+  Alpaca (S³) — 10 buckets, width=205
+   Bucket          Range   Count     Pct  Bar
+  ────────────────────────────────────────────────────────────
+        0      0-204      50889   97.9%  ████████████████████████████████████████████████
+        1    204-409       1027    2.0%  
+        2    409-614         49    0.1%  
+        3    614-819          7    0.0%  
+        4    819-1024         2    0.0%  
+        5   1024-1228         0    0.0%  
+        6   1228-1433         0    0.0%  
+        7   1433-1638         0    0.0%  
+        8   1638-1843         0    0.0%  
+        9   1843-2048         0    0.0%  
+  ────────────────────────────────────────────────────────────
+  majority bucket: 97.9% | imbalance: 25444.5x | entropy: 0.046 | occupied: 5/10
+
+  ShareGPT — 10 buckets, width=819
+   Bucket          Range   Count     Pct  Bar
+  ────────────────────────────────────────────────────────────
+        0      0-819       9319   93.2%  ██████████████████████████████████████████████
+        1    819-1638       648    6.5%  ███
+        2   1638-2457        28    0.3%  
+        3   2457-3276         5    0.1%  
+        4   3276-4096         0    0.0%  
+        5   4096-4915         0    0.0%  
+        6   4915-5734         0    0.0%  
+        7   5734-6553         0    0.0%  
+        8   6553-7372         0    0.0%  
+        9   7372-8192         0    0.0%  
+  ────────────────────────────────────────────────────────────
+  majority bucket: 93.2% | imbalance: 1863.8x | entropy: 0.114 | occupied: 4/10
+
+  LMSYS — 10 buckets, width=819
+   Bucket          Range   Count     Pct  Bar
+  ────────────────────────────────────────────────────────────
+        0      0-819       9456   94.6%  ███████████████████████████████████████████████
+        1    819-1638       532    5.3%  ██
+        2   1638-2457         9    0.1%  
+        3   2457-3276         2    0.0%  
+        4   3276-4096         1    0.0%  
+        5   4096-4915         0    0.0%  
+        6   4915-5734         0    0.0%  
+        7   5734-6553         0    0.0%  
+        8   6553-7372         0    0.0%  
+        9   7372-8192         0    0.0%  
+  ────────────────────────────────────────────────────────────
+  majority bucket: 94.6% | imbalance: 9456.0x | entropy: 0.095 | occupied: 5/10
+
+=================================================================
+  Note: S³ also evaluated on NQ (77.1% acc) and Pile (65.6% acc),
+  showing accuracy degrades on more diverse datasets even with
+  their own max_seq=2048 setting.
+=================================================================
+
+  Plot saved: /home/cc/vllm-ltr-sched/rep/final_results/analysis/s3_comparison/results/s3_vs_vllm_ltr.png
