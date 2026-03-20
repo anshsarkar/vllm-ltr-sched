@@ -24,6 +24,22 @@ SCHED_LABELS = {
 
 SCHED_ORDER = list(SCHED_LABELS.keys())
 
+# True number of classes for each scheduler.
+# The benchmark script parses num_labels from the schedule_type name using
+# regex r'class(\d+)', which fails for schedulers like "tpt-width10-xxx"
+# (no "class" in the name) and falls back to a default. This map provides
+# the correct values based on the actual training configuration.
+LABEL_MAX_LENGTH = 8192
+TRUE_NUM_LABELS = {
+    "srtf-PO-X":         None,
+    "opt-xxx":            10,
+    "tpt-class10-xxx":    10,                                    # label_group_size=820
+    "tpt-class82-xxx":    -(-LABEL_MAX_LENGTH // 100),           # label_group_size=100 -> 82
+    "tpt-width10-xxx":    -(-LABEL_MAX_LENGTH // 10),            # label_group_size=10  -> 820
+    "tpt-pctl10-xxx":     10,
+    "tpt-pctl10-mse-xxx": 10,
+}
+
 
 def load_metrics(dataset_dir):
     """Load prediction_metrics.jsonl from a dataset directory."""
@@ -56,7 +72,7 @@ def process_dataset(dataset_dir, dataset_name):
             "spearman_rho":  r.get("spearman_rho"),
             "accuracy":      r.get("accuracy"),
             "mae":           r.get("mae"),
-            "num_labels":    r.get("num_labels"),
+            "num_labels":    TRUE_NUM_LABELS.get(sched, r.get("num_labels")),
             "n_requests":    r["n_requests"],
         })
     return rows

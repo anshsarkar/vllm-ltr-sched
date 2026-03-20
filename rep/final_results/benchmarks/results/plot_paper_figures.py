@@ -153,7 +153,7 @@ def make_figure(dataset):
 
     fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
     fig.suptitle(
-        f"LLaMA-3-8B, 1 A100 GPU, {DATASET_TITLES[dataset]}",
+        f"LLaMA-3-8B, 1 A100 80GB GPU, {DATASET_TITLES[dataset]}",
         fontsize=14, fontweight="bold", y=1.02,
     )
 
@@ -161,6 +161,7 @@ def make_figure(dataset):
     subplot_fixed_width(axes[1], our_df, authors_df)
     subplot_percentile(axes[2], our_df, authors_df)
 
+    subplot_labels = ["(a)", "(b)", "(c)"]
     for i, ax in enumerate(axes):
         ax.set_xlabel("Request Rate (req/s)", fontsize=11)
         ax.set_ylabel("Latency (s/token)", fontsize=11)
@@ -169,9 +170,11 @@ def make_figure(dataset):
         ax.grid(True, alpha=0.3)
         ax.set_xlim(0, 68)
         ax.set_ylim(bottom=0)
+        ax.text(0.5, -0.15, subplot_labels[i], transform=ax.transAxes,
+                fontsize=13, fontweight="bold", ha="center", va="top")
 
     plt.tight_layout()
-    out_path = os.path.join(OUTPUT_DIR, f"paper_figure_{dataset}.png")
+    out_path = os.path.join(OUTPUT_DIR, f"paper_figure_{dataset}.pdf")
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved: {out_path}")
