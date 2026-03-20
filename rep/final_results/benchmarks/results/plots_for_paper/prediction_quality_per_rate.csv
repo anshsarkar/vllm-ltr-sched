@@ -1,73 +1,13 @@
-dataset,scheduler,label,request_rate,kendall_tau,accuracy,num_labels,n_requests
-lmsys,opt-xxx,Ranking,2.0,-0.6485312426559918,,10,120
-lmsys,opt-xxx,Ranking,4.0,-0.6582696078975959,,10,240
-lmsys,opt-xxx,Ranking,8.0,-0.6460581102895281,,10,480
-lmsys,opt-xxx,Ranking,16.0,-0.6498899890400932,,10,960
-lmsys,opt-xxx,Ranking,32.0,-0.642982472880552,,10,1920
-lmsys,opt-xxx,Ranking,64.0,-0.6429484067070332,,10,3840
-lmsys,srtf-PO-X,Oracle (Pre-run),2.0,0.6285241215435136,,10,120
-lmsys,srtf-PO-X,Oracle (Pre-run),4.0,0.612518949374692,,10,240
-lmsys,srtf-PO-X,Oracle (Pre-run),8.0,0.5972716091036956,,10,480
-lmsys,srtf-PO-X,Oracle (Pre-run),16.0,0.5942027520526837,,10,960
-lmsys,srtf-PO-X,Oracle (Pre-run),32.0,0.5766816044372509,,10,1920
-lmsys,srtf-PO-X,Oracle (Pre-run),64.0,0.5665943712521474,,10,3840
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),2.0,-0.43420501705566145,0.8833333333333333,10,120
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),4.0,-0.36047306569097154,0.925,10,240
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),8.0,-0.2961876766701558,0.9458333333333333,10,480
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),16.0,-0.2805598022324956,0.9489583333333333,10,960
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),32.0,-0.2872693806166176,0.9494791666666667,10,1920
-lmsys,tpt-class10-xxx,Classification (#Buckets=10),64.0,-0.2647328212891162,0.9567708333333333,10,3840
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),2.0,-0.5941909571502577,0.4,82,120
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),4.0,-0.581376587908549,0.44583333333333336,82,240
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),8.0,-0.5615279722217033,0.4375,82,480
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),16.0,-0.5548144315389483,0.4322916666666667,82,960
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),32.0,-0.5537202830265081,0.43125,82,1920
-lmsys,tpt-class82-xxx,Classification (Bucket Size=100),64.0,-0.5573950088827536,0.43463541666666666,82,3840
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",2.0,-0.6013009925076728,,10,120
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",4.0,-0.60446936439893,,10,240
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",8.0,-0.5952540183686511,,10,480
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",16.0,-0.5628323051454562,,10,960
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",32.0,-0.573628198799271,,10,1920
-lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",64.0,-0.5744250931963814,,10,3840
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),2.0,-0.5217446016485451,0.125,819,120
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),4.0,-0.5553174963120162,0.13333333333333333,819,240
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),8.0,-0.542147022841614,0.14375,819,480
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),16.0,-0.5265002995557064,0.14166666666666666,819,960
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),32.0,-0.5323946637433138,0.14947916666666666,819,1920
-lmsys,tpt-width10-xxx,Classification (Bucket Size=10),64.0,-0.5259858917143543,0.14661458333333333,819,3840
-sharegpt,opt-xxx,Ranking,2.0,-0.5543251645633039,,10,120
-sharegpt,opt-xxx,Ranking,4.0,-0.5369411751448494,,10,240
-sharegpt,opt-xxx,Ranking,8.0,-0.5149545476195294,,10,480
-sharegpt,opt-xxx,Ranking,16.0,-0.5171096848191704,,10,960
-sharegpt,opt-xxx,Ranking,32.0,-0.5033534473129435,,10,1920
-sharegpt,opt-xxx,Ranking,64.0,-0.5014278189945289,,10,3840
-sharegpt,srtf-PO-X,Oracle (Pre-run),2.0,0.3642669976697715,,10,120
-sharegpt,srtf-PO-X,Oracle (Pre-run),4.0,0.3730341751235513,,10,240
-sharegpt,srtf-PO-X,Oracle (Pre-run),8.0,0.32633179203196844,,10,480
-sharegpt,srtf-PO-X,Oracle (Pre-run),16.0,0.33329226611898993,,10,960
-sharegpt,srtf-PO-X,Oracle (Pre-run),32.0,0.32192075251783325,,10,1920
-sharegpt,srtf-PO-X,Oracle (Pre-run),64.0,0.3416490644717581,,10,3840
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),2.0,-0.162082592935526,0.9416666666666667,10,120
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),4.0,-0.15979547960451562,0.9583333333333334,10,240
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),8.0,-0.20354007384908407,0.9416666666666667,10,480
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),16.0,-0.21039509645371024,0.9447916666666667,10,960
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),32.0,-0.20805945177357843,0.9479166666666666,10,1920
-sharegpt,tpt-class10-xxx,Classification (#Buckets=10),64.0,-0.20679414977163732,0.94375,10,3840
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),2.0,-0.5448207304231891,0.225,82,120
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),4.0,-0.4947945682702582,0.23333333333333334,82,240
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),8.0,-0.45173920347558605,0.2125,82,480
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),16.0,-0.4426888168158336,0.21145833333333333,82,960
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),32.0,-0.4245682372824444,0.2,82,1920
-sharegpt,tpt-class82-xxx,Classification (Bucket Size=100),64.0,-0.43240341217463324,0.19869791666666667,82,3840
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",2.0,-0.5355024900044322,,10,120
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",4.0,-0.5086862276509918,,10,240
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",8.0,-0.46517974705925724,,10,480
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",16.0,-0.470215049826813,,10,960
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",32.0,-0.44007923437271707,,10,1920
-sharegpt,tpt-pctl10-xxx,"Classification (Percentile, CE)",64.0,-0.4352110841448205,,10,3840
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),2.0,-0.19122082375767396,0.025,819,120
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),4.0,-0.15314754242949197,0.020833333333333332,819,240
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),8.0,-0.1284255743158221,0.027083333333333334,819,480
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),16.0,-0.15003031682000098,0.03958333333333333,819,960
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),32.0,-0.11657042647725466,0.0328125,819,1920
-sharegpt,tpt-width10-xxx,Classification (Bucket Size=10),64.0,-0.1496435116683622,0.0359375,819,3840
+dataset,scheduler,label,request_rate,kendall_tau,spearman_rho,accuracy,mae,num_labels,n_requests
+lmsys,srtf-PO-X,Oracle (Pre-run),64.0,0.5663935882853862,0.7393876357621213,,,,3840
+lmsys,opt-xxx,Ranking,64.0,-0.6430800738874474,-0.8244563929554218,0.10026041666666667,4.49765625,10,3840
+lmsys,tpt-class10-xxx,Classification (#Buckets=10),64.0,-0.26465172618462957,-0.32351971293121107,0.9567708333333333,0.04348958333333333,10,3840
+lmsys,tpt-class82-xxx,Classification (Bucket Size=100),64.0,-0.5571829881513024,-0.6929131995990911,0.43463541666666666,1.2057291666666667,82,3840
+lmsys,tpt-width10-xxx,Classification (Bucket Size=10),64.0,-0.5254710446628458,-0.6734896525495353,0.1265625,4.215625,10,3840
+lmsys,tpt-pctl10-xxx,"Classification (Percentile, CE)",64.0,-0.5743563687403827,-0.7187223760468636,0.1125,4.0578125,10,3840
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",2.0,-0.6044778583863606,-0.7387220392514328,0.13333333333333333,3.8333333333333335,10,120
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",4.0,-0.593878745429621,-0.7335560962915467,0.18333333333333332,3.9916666666666667,10,240
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",8.0,-0.5940541963321342,-0.73777543684614,0.21458333333333332,3.7291666666666665,10,480
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",16.0,-0.6054603134068828,-0.750968798085541,0.22604166666666667,3.63125,10,960
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",32.0,-0.6097972295068909,-0.7530726485561656,0.23229166666666667,3.609375,10,1920
+lmsys,tpt-pctl10-mse-xxx,"Classification (Percentile, MSE)",64.0,-0.6086194741413398,-0.7525232421357755,0.23723958333333334,3.6044270833333334,10,3840
