@@ -12,8 +12,6 @@ import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as pe
-from matplotlib.patches import FancyBboxPatch
 import numpy as np
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -59,7 +57,7 @@ def load_data(csv_path):
         return list(csv.DictReader(f))
 
 
-def make_histogram(buckets, counts, output_path, is_pctl=False, sched_name=""):
+def make_histogram(counts, output_path, is_pctl=False):
     """Create a polished mini histogram PDF for inline table embedding."""
     fig, ax = plt.subplots(figsize=(FIG_WIDTH, FIG_HEIGHT))
     fig.patch.set_alpha(0)          # transparent figure background
@@ -70,19 +68,9 @@ def make_histogram(buckets, counts, output_path, is_pctl=False, sched_name=""):
     face_light = PCTL_FACE_LIGHT if is_pctl else UNIFORM_FACE_LIGHT
     edge = PCTL_EDGE if is_pctl else UNIFORM_EDGE
 
-    n = len(buckets)
     total = sum(counts)
 
-    # Bin into visual groups for large bucket counts
-    if n > 25:
-        n_bins = 25
-        bin_size = max(1, n // n_bins)
-        vis_counts = []
-        for i in range(0, n, bin_size):
-            vis_counts.append(sum(counts[i:i + bin_size]))
-        vis_counts = np.array(vis_counts, dtype=float)
-    else:
-        vis_counts = np.array(counts, dtype=float)
+    vis_counts = np.array(counts, dtype=float)
 
     n_vis = len(vis_counts)
     x = np.arange(n_vis)
@@ -118,20 +106,9 @@ def make_histogram(buckets, counts, output_path, is_pctl=False, sched_name=""):
             if g < max_pct * 0.95:
                 ax.axhline(g, color="#D0D0D0", linewidth=0.25, zorder=1, linestyle="-")
 
-    # Annotate dominant bucket if extremely skewed (>85%)
-    top_pct = pct.max()
-    top_idx = int(pct.argmax())
-    if top_pct > 85:
-        ax.annotate(f"{top_pct:.0f}%",
-                    xy=(top_idx, top_pct),
-                    xytext=(0, 1.5), textcoords="offset points",
-                    ha="center", va="bottom",
-                    fontsize=5, fontweight="bold", color=edge,
-                    path_effects=[pe.withStroke(linewidth=1.2, foreground="white")])
-
     # Axis styling
     ax.set_xlim(-0.6, n_vis - 0.4)
-    y_top = max_pct * 1.18 if top_pct > 85 else max_pct * 1.08
+    y_top = max_pct * 1.08
     ax.set_ylim(0, max(y_top, 0.5))
 
     # Only a thin bottom spine
@@ -171,14 +148,12 @@ def main():
                 continue
 
             subset.sort(key=lambda r: int(r["bucket_id"]))
-            buckets = [int(r["bucket_id"]) for r in subset]
             counts = [int(r["count"]) for r in subset]
 
             is_pctl = "pctl" in sched
             fname = f"hist_{dataset}_{sched.replace('-xxx', '')}.pdf"
             out_path = os.path.join(OUTPUT_DIR, fname)
-            make_histogram(buckets, counts, out_path, is_pctl=is_pctl,
-                           sched_name=sched)
+            make_histogram(counts, out_path, is_pctl=is_pctl)
             nonzero = sum(c > 0 for c in counts)
             print(f"  {fname}  ({nonzero}/{len(counts)} non-zero)")
 
