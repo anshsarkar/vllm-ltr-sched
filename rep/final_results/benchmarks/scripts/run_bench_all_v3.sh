@@ -72,7 +72,7 @@ for config in \
 done
 
 # ---- Run LMSYS ----
-mkdir -p "$PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test3"
+mkdir -p "$PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test4"
 
 echo ""
 echo "=========================================="
@@ -82,14 +82,14 @@ echo "  Using benchmark_serving_real_with_metrics.py"
 echo "=========================================="
 echo ""
 
-bash "$BENCH_DIR/bench-final-lmsys-mruns.sh" 2>&1 | tee "$PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test3/bench_run.log"
+bash "$BENCH_DIR/bench-final-lmsys-mruns.sh" 2>&1 | tee "$PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test4/bench_run.log"
 
 echo ""
 echo "=== LMSYS benchmarks complete ==="
 echo ""
 
 # ---- Run ShareGPT ----
-mkdir -p "$PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test3"
+mkdir -p "$PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test4"
 
 echo ""
 echo "=========================================="
@@ -99,11 +99,11 @@ echo "  Using benchmark_serving_real_with_metrics.py"
 echo "=========================================="
 echo ""
 
-bash "$BENCH_DIR/bench-final-sharegpt-mruns.sh" 2>&1 | tee "$PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test3/bench_run.log"
+bash "$BENCH_DIR/bench-final-sharegpt-mruns.sh" 2>&1 | tee "$PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test4/bench_run.log"
 
 echo ""
 echo "=========================================="
 echo "=== All benchmarks (v3) complete ==="
-echo "LMSYS results:   $PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test3/"
-echo "ShareGPT results: $PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test3/"
+echo "LMSYS results:   $PROJECT_ROOT/rep/final_results/benchmarks/results/lmsys_test4/"
+echo "ShareGPT results: $PROJECT_ROOT/rep/final_results/benchmarks/results/sharegpt_test4/"
 echo "=========================================="
