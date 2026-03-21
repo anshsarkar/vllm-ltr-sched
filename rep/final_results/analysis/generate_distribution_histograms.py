@@ -22,7 +22,7 @@ OUTPUT_DIR = os.path.join(
 
 # Figure dimensions (compact for inline table use)
 FIG_WIDTH = 2.2
-FIG_HEIGHT = 0.6
+FIG_HEIGHT = 0.4
 
 # ── Color palette ─────────────────────────────────────────────────────────
 # Uniform buckets: warm orange gradient
@@ -72,6 +72,14 @@ def make_histogram(counts, output_path, is_pctl=False):
 
     vis_counts = np.array(counts, dtype=float)
 
+    # Aggregate into visible bins if too many bars (e.g. 820-class)
+    MAX_BARS = 80
+    if len(vis_counts) > MAX_BARS:
+        n_orig = len(vis_counts)
+        bin_size = int(np.ceil(n_orig / MAX_BARS))
+        padded = np.pad(vis_counts, (0, bin_size * int(np.ceil(n_orig / bin_size)) - n_orig))
+        vis_counts = padded.reshape(-1, bin_size).sum(axis=1)
+
     n_vis = len(vis_counts)
     x = np.arange(n_vis)
 
@@ -86,8 +94,8 @@ def make_histogram(counts, output_path, is_pctl=False):
     light_rgba = np.array(to_rgba(face_light))
 
     bar_width = 0.82 if n_vis <= 15 else 0.90
-    bars = ax.bar(x, pct, width=bar_width, color=face, edgecolor=edge,
-                  linewidth=0.35, zorder=3)
+    bars = ax.bar(x, pct, width=bar_width, color=face, edgecolor="white",
+                  linewidth=0.3, zorder=3)
 
     # Color each bar by intensity
     for bar, nv in zip(bars, norm_vals):
@@ -121,15 +129,7 @@ def make_histogram(counts, output_path, is_pctl=False):
     ax.tick_params(left=False, labelleft=False,
                    bottom=False, labelbottom=False)
 
-    # Add tiny "Short" / "Long" labels at ends for context
-    # Bucket 0 = longest output, last bucket = shortest output
-    if n_vis >= 5:
-        ax.text(-0.3, -max_pct * 0.06, "Long", fontsize=3.5, color="#888888",
-                ha="left", va="top", style="italic")
-        ax.text(n_vis - 0.7, -max_pct * 0.06, "Short", fontsize=3.5, color="#888888",
-                ha="right", va="top", style="italic")
-
-    fig.subplots_adjust(left=0.02, right=0.98, top=0.90, bottom=0.14)
+    fig.subplots_adjust(left=0.02, right=0.98, top=0.92, bottom=0.08)
     fig.savefig(output_path, bbox_inches="tight", pad_inches=0.02,
                 dpi=300, transparent=True)
     plt.close(fig)

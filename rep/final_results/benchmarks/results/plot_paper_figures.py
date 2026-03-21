@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Generate paper-ready 3-subplot comparison figures for LMSYS and ShareGPT."""
+"""Generate paper-ready 3-subplot comparison figures for LMSYS and ShareGPT.
+
+Layout:
+  (a) Authors' original results (dashed)
+  (b) Our reproduction (solid)
+  (c) All classification variants (merged) — FCFS + Ranking + all classifiers
+Single shared horizontal legend at the bottom.
+"""
 
 import os
 import numpy as np
@@ -18,17 +25,17 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "plots_for_paper")
 AUTHOR_STYLE = {
     "fcfs":            {"color": "#1f77b4", "marker": "s", "label": "FCFS"},
     "mlfq":            {"color": "#ff7f0e", "marker": "^", "label": "MLFQ"},
-    "srtf-PO-X":       {"color": "#2ca02c", "marker": "D", "label": "PO"},
-    "tpt-class10-xxx": {"color": "#d62728", "marker": "o", "label": "Classification"},
-    "opt-xxx":         {"color": "#9467bd", "marker": "p", "label": "Ranking (Authors)"},
+    "srtf-PO-X":       {"color": "#2ca02c", "marker": "D", "label": "PO (Oracle)"},
+    "tpt-class10-xxx": {"color": "#d62728", "marker": "o", "label": "Cls. (B=10, w=820)"},
+    "opt-xxx":         {"color": "#9467bd", "marker": "p", "label": "Ranking"},
 }
 
-# New variant styles
+# New variant styles for subplot (c) — 10-class reuses AUTHOR_STYLE color/marker
 NEW_STYLE = {
-    "tpt-width10-xxx": {"color": "#8B4513", "marker": "v", "label": "Classification (w=10)"},
-    "tpt-class82-xxx": {"color": "#808080", "marker": "X", "label": "Classification (w=100)"},
-    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Classification (percentile, CE)"},
-    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Classification (percentile, MSE)"},
+    "tpt-class82-xxx": {"color": "#808080", "marker": "X", "label": "Cls. (B=82, w=100)"},
+    "tpt-width10-xxx": {"color": "#8B4513", "marker": "v", "label": "Cls. (B=820, w=10)"},
+    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Pctl. (B=10, CE)"},
+    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Pctl. (B=10, MSE)"},
 }
 
 DATASET_TITLES = {
@@ -36,9 +43,9 @@ DATASET_TITLES = {
     "sharegpt": "ShareGPT",
 }
 
-LINE_WIDTH = 2
-MARKER_SIZE = 7
-DASH_STYLE = (5, 4)  # longer dashes with clear gaps
+LINE_WIDTH = 1.8
+MARKER_SIZE = 5
+DASH_STYLE = (5, 4)
 
 
 def load_our_data(dataset):
@@ -76,104 +83,122 @@ def plot_line(ax, df, scheduler, style, linestyle="solid"):
     )
 
 
-def subplot_reproducibility(ax, our_df, authors_df):
-    """Subplot 1: Authors (dashed) vs Our reproduction (solid)."""
+def subplot_authors(ax, authors_df):
+    """Subplot (a): Authors' original results, all dashed."""
+    if authors_df is None:
+        return
     for sched, style in AUTHOR_STYLE.items():
-        # Authors' line (dashed)
-        if authors_df is not None:
-            authors_style = {**style, "label": "_nolegend_"}
-            plot_line(ax, authors_df, sched, authors_style, linestyle="dashed")
-        # Our line (solid)
-        ours_style = {**style, "label": "_nolegend_"}
-        plot_line(ax, our_df, sched, ours_style, linestyle="solid")
+        plot_line(ax, authors_df, sched, {**style, "label": "_nolegend_"}, linestyle="dashed")
+    ax.set_title("(a) Authors' Results", fontsize=9, fontweight="bold")
 
-    # Vertical line showing Classification gap at 64 req/s
-    if authors_df is not None:
-        ax_rates, ax_vals = get_series(authors_df, "tpt-class10-xxx")
-        ox_rates, ox_vals = get_series(our_df, "tpt-class10-xxx")
-        if ax_rates is not None and ox_rates is not None:
-            a_val = float(ax_vals[ax_rates == 64.0][0])
-            o_val = float(ox_vals[ox_rates == 64.0][0])
-            ax.plot([64, 64], [min(a_val, o_val), max(a_val, o_val)],
-                    color="#d62728", linewidth=1.5, linestyle="-", alpha=0.6)
 
-    # Custom legend: one entry per scheduler + solid/dashed key
-    handles = []
+def subplot_ours(ax, our_df):
+    """Subplot (b): Our reproduction, all solid."""
     for sched, style in AUTHOR_STYLE.items():
-        handles.append(Line2D([0], [0], color=style["color"], marker=style["marker"],
-                              markersize=6, linewidth=LINE_WIDTH, label=style["label"]))
-    # Add solid/dashed indicators
-    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="-", label="Reproduced"))
-    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="--",
-                          dashes=DASH_STYLE, label="Original"))
-    ax.legend(handles=handles, fontsize=7.5, loc="upper left")
-    ax.set_title("Reproducibility Comparison", fontsize=11, fontweight="bold")
+        plot_line(ax, our_df, sched, {**style, "label": "_nolegend_"}, linestyle="solid")
+    ax.set_title("(b) Our Reproduction", fontsize=9, fontweight="bold")
 
 
-def subplot_fixed_width(ax, our_df, authors_df):
-    """Subplot 2: Fixed-width classification variants."""
-    # Baselines (solid)
-    plot_line(ax, our_df, "fcfs", AUTHOR_STYLE["fcfs"])
-    plot_line(ax, our_df, "opt-xxx", AUTHOR_STYLE["opt-xxx"])
+def subplot_variants(ax, our_df, authors_df):
+    """Subplot (c): All classification variants merged.
+
+    Shows: FCFS (solid), Ranking (solid), Authors' 10-class (dashed),
+    our 10-class (solid), class82, width10, pctl10-CE, pctl10-MSE (all solid).
+    """
+    # FCFS baseline
+    plot_line(ax, our_df, "fcfs", {**AUTHOR_STYLE["fcfs"], "label": "_nolegend_"})
+    # Ranking baseline
+    plot_line(ax, our_df, "opt-xxx", {**AUTHOR_STYLE["opt-xxx"], "label": "_nolegend_"})
 
     # Authors' 10-class (dashed reference)
     if authors_df is not None:
-        ref_style = {**AUTHOR_STYLE["tpt-class10-xxx"], "label": "Classification 10-class (Original)"}
+        ref_style = {**AUTHOR_STYLE["tpt-class10-xxx"], "label": "_nolegend_"}
         plot_line(ax, authors_df, "tpt-class10-xxx", ref_style, linestyle="dashed")
+
+    # Our 10-class reproduction (solid) — same color/marker as authors', distinguished by line style
+    plot_line(ax, our_df, "tpt-class10-xxx", {**AUTHOR_STYLE["tpt-class10-xxx"], "label": "_nolegend_"})
 
     # New variants (solid)
-    plot_line(ax, our_df, "tpt-width10-xxx", NEW_STYLE["tpt-width10-xxx"])
-    plot_line(ax, our_df, "tpt-class82-xxx", NEW_STYLE["tpt-class82-xxx"])
-
-    ax.set_title("Fixed-Width Classification Variants", fontsize=11, fontweight="bold")
-
-
-def subplot_percentile(ax, our_df, authors_df):
-    """Subplot 3: Percentile classification variants."""
-    # Baselines (solid)
-    plot_line(ax, our_df, "fcfs", AUTHOR_STYLE["fcfs"])
-    plot_line(ax, our_df, "opt-xxx", AUTHOR_STYLE["opt-xxx"])
-
-    # Authors' 10-class (dashed reference)
-    if authors_df is not None:
-        ref_style = {**AUTHOR_STYLE["tpt-class10-xxx"], "label": "Classification 10-class (Original)"}
-        plot_line(ax, authors_df, "tpt-class10-xxx", ref_style, linestyle="dashed")
-
-    # Percentile variants (solid)
-    plot_line(ax, our_df, "tpt-pctl10-xxx", NEW_STYLE["tpt-pctl10-xxx"])
+    plot_line(ax, our_df, "tpt-class82-xxx", {**NEW_STYLE["tpt-class82-xxx"], "label": "_nolegend_"})
+    plot_line(ax, our_df, "tpt-width10-xxx", {**NEW_STYLE["tpt-width10-xxx"], "label": "_nolegend_"})
+    plot_line(ax, our_df, "tpt-pctl10-xxx", {**NEW_STYLE["tpt-pctl10-xxx"], "label": "_nolegend_"})
     if "tpt-pctl10-mse-xxx" in our_df["scheduler"].values:
-        plot_line(ax, our_df, "tpt-pctl10-mse-xxx", NEW_STYLE["tpt-pctl10-mse-xxx"])
+        plot_line(ax, our_df, "tpt-pctl10-mse-xxx", {**NEW_STYLE["tpt-pctl10-mse-xxx"], "label": "_nolegend_"})
 
-    ax.set_title("Percentile Classification Variants", fontsize=11, fontweight="bold")
+    ax.set_title("(c) Classification Variants", fontsize=9, fontweight="bold")
+
+
+def build_legend_handles():
+    """Build a single unified legend for all 3 subplots.
+
+    Row 1: line-style key + schedulers from (a)/(b)
+    Row 2: classification variants from (c)
+    """
+    handles = []
+
+    # Line style indicators first
+    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="-",
+                          label="Ours"))
+    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="--",
+                          dashes=DASH_STYLE, label="Authors'"))
+
+    # Schedulers from (a) and (b)
+    for sched, style in AUTHOR_STYLE.items():
+        handles.append(Line2D([0], [0], color=style["color"], marker=style["marker"],
+                              markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
+                              label=style["label"]))
+
+    # New variants from (c)
+    for sched, style in NEW_STYLE.items():
+        handles.append(Line2D([0], [0], color=style["color"], marker=style["marker"],
+                              markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
+                              label=style["label"]))
+
+    return handles
 
 
 def make_figure(dataset):
     our_df = load_our_data(dataset)
     authors_df = load_authors_data(dataset)
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
-    fig.suptitle(
-        f"LLaMA-3-8B, 1 A100 80GB GPU, {DATASET_TITLES[dataset]}",
-        fontsize=14, fontweight="bold", y=1.02,
+    # Compact figure — wide enough for single-row legend
+    fig, axes = plt.subplots(1, 3, figsize=(16, 2.9), sharey=True)
+
+    subplot_authors(axes[0], authors_df)
+    subplot_ours(axes[1], our_df)
+    subplot_variants(axes[2], our_df, authors_df)
+
+    # Compute consistent y-axis across all subplots with integer ticks
+    global_ymax = max(ax.get_ylim()[1] for ax in axes)
+    y_ceil = int(np.ceil(global_ymax))  # round up to nearest integer
+    for i, ax in enumerate(axes):
+        ax.set_xlabel("Request Rate (req/s)", fontsize=9)
+        if i == 0:
+            ax.set_ylabel("Latency (s/token)", fontsize=9)
+        ax.tick_params(axis="both", labelsize=8)
+        ax.grid(True, alpha=0.3)
+        # Pad axes like authors' plot — don't start at edge
+        ax.set_xlim(-2, 70)
+        ax.set_ylim(-0.3, y_ceil + 0.15)
+        ax.set_yticks(range(0, y_ceil + 1, 1))
+
+    # Legend on top — single row with shorter labels
+    handles = build_legend_handles()
+    fig.legend(
+        handles=handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 1.0),
+        ncol=len(handles),
+        fontsize=7,
+        frameon=False,
+        columnspacing=0.5,
+        handletextpad=0.2,
+        handlelength=1.2,
+        borderpad=0,
+        labelspacing=0.1,
     )
 
-    subplot_reproducibility(axes[0], our_df, authors_df)
-    subplot_fixed_width(axes[1], our_df, authors_df)
-    subplot_percentile(axes[2], our_df, authors_df)
-
-    subplot_labels = ["(a)", "(b)", "(c)"]
-    for i, ax in enumerate(axes):
-        ax.set_xlabel("Request Rate (req/s)", fontsize=11)
-        ax.set_ylabel("Latency (s/token)", fontsize=11)
-        if i != 0:  # subplot 1 has custom legend
-            ax.legend(fontsize=7.5, loc="upper left")
-        ax.grid(True, alpha=0.3)
-        ax.set_xlim(0, 68)
-        ax.set_ylim(bottom=0)
-        ax.text(0.5, -0.15, subplot_labels[i], transform=ax.transAxes,
-                fontsize=13, fontweight="bold", ha="center", va="top")
-
-    plt.tight_layout()
+    plt.tight_layout(w_pad=1.5)
     out_path = os.path.join(OUTPUT_DIR, f"paper_figure_{dataset}.pdf")
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
@@ -182,7 +207,8 @@ def make_figure(dataset):
 
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    for dataset in ["lmsys", "sharegpt"]:
+    # ShareGPT first, then LMSYS
+    for dataset in ["sharegpt", "lmsys"]:
         make_figure(dataset)
 
 
