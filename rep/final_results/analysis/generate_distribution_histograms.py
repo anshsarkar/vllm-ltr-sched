@@ -21,7 +21,7 @@ OUTPUT_DIR = os.path.join(
 )
 
 # Figure dimensions (compact for inline table use)
-FIG_WIDTH = 2.2
+FIG_WIDTH = 1.6
 FIG_HEIGHT = 0.4
 
 # ── Color palette ─────────────────────────────────────────────────────────
@@ -63,11 +63,6 @@ def make_histogram(counts, output_path, is_pctl=False):
     fig.patch.set_alpha(0)          # transparent figure background
     ax.set_facecolor("white")
 
-    # Pick colors
-    face = PCTL_FACE if is_pctl else UNIFORM_FACE
-    face_light = PCTL_FACE_LIGHT if is_pctl else UNIFORM_FACE_LIGHT
-    edge = PCTL_EDGE if is_pctl else UNIFORM_EDGE
-
     total = sum(counts)
 
     vis_counts = np.array(counts, dtype=float)
@@ -87,32 +82,10 @@ def make_histogram(counts, output_path, is_pctl=False):
     pct = 100.0 * vis_counts / total if total > 0 else vis_counts
     max_pct = pct.max()
 
-    # Create gradient effect: darker bars for higher values
-    norm_vals = pct / max_pct if max_pct > 0 else pct
-    from matplotlib.colors import to_rgba
-    face_rgba = np.array(to_rgba(face))
-    light_rgba = np.array(to_rgba(face_light))
-
-    bar_width = 0.82 if n_vis <= 15 else 0.90
-    bars = ax.bar(x, pct, width=bar_width, color=face, edgecolor="white",
-                  linewidth=0.3, zorder=3)
-
-    # Color each bar by intensity
-    for bar, nv in zip(bars, norm_vals):
-        color = light_rgba + (face_rgba - light_rgba) * nv
-        bar.set_facecolor(color)
-
-    # Subtle horizontal reference lines
-    if max_pct > 15:
-        if max_pct > 70:
-            gridlines = [25, 50, 75]
-        elif max_pct > 35:
-            gridlines = [10, 20, 30]
-        else:
-            gridlines = [5, 10]
-        for g in gridlines:
-            if g < max_pct * 0.95:
-                ax.axhline(g, color="#D0D0D0", linewidth=0.25, zorder=1, linestyle="-")
+    # Black bars, tight spacing, no gaps
+    bar_width = 0.95
+    ax.bar(x, pct, width=bar_width, color="black", edgecolor="none",
+           linewidth=0, zorder=3)
 
     # Axis styling
     ax.set_xlim(-0.6, n_vis - 0.4)
