@@ -3,7 +3,7 @@
 
 Layout:
   (a) Authors' original results (dashed)
-  (b) Our reproduction (solid)
+  (b) Our reproduction with SE bands (mean ± standard error across 3 runs)
   (c) All classification variants (merged) — FCFS + Ranking + all classifiers
 Single shared horizontal legend at the bottom.
 """
@@ -25,7 +25,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, "plots_for_paper")
 AUTHOR_STYLE = {
     "fcfs":            {"color": "#1f77b4", "marker": "s", "label": "FCFS"},
     "mlfq":            {"color": "#ff7f0e", "marker": "^", "label": "MLFQ"},
-    "srtf-PO-X":       {"color": "#2ca02c", "marker": "D", "label": "PO (Oracle)"},
+    "srtf-PO-X":       {"color": "#2ca02c", "marker": "D", "label": "Perception (PO)"},
     "tpt-class10-xxx": {"color": "#d62728", "marker": "o", "label": "Classification (10 buckets, width=820)"},
     "opt-xxx":         {"color": "#9467bd", "marker": "p", "label": "Ranking"},
 }
@@ -34,8 +34,8 @@ AUTHOR_STYLE = {
 NEW_STYLE = {
     "tpt-class82-xxx": {"color": "#808080", "marker": "X", "label": "Classification (82 buckets, width=100)"},
     "tpt-width10-xxx": {"color": "#8B4513", "marker": "v", "label": "Classification (820 buckets, width=10)"},
-    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Percentile (10 buckets, CE loss)"},
-    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Percentile (10 buckets, MSE loss)"},
+    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Classification (Percentile, 10 buckets, CE loss)"},
+    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Classification (Percentile, 10 buckets, MSE loss)"},
 }
 
 DATASET_TITLES = {
@@ -45,7 +45,10 @@ DATASET_TITLES = {
 
 LINE_WIDTH = 1.8
 MARKER_SIZE = 5
-DASH_STYLE = (5, 4)
+DASH_STYLE = (4, 3)
+
+
+RUNS = ["", "_test3", "_test4"]  # "" = original run
 
 
 def load_our_data(dataset):
@@ -53,6 +56,21 @@ def load_our_data(dataset):
     df = pd.read_csv(path)
     df["mean_nlatency_s"] = df["mean_nlatency_ms"] / 1000.0
     return df
+
+
+def load_all_runs(dataset):
+    """Load CSVs for all 3 runs and return combined DataFrame."""
+    frames = []
+    for suffix in RUNS:
+        path = os.path.join(BASE_DIR, f"metrics_{dataset}{suffix}.csv")
+        if not os.path.exists(path):
+            continue
+        df = pd.read_csv(path)
+        df["mean_nlatency_s"] = df["mean_nlatency_ms"] / 1000.0
+        frames.append(df)
+    if not frames:
+        return None
+    return pd.concat(frames, ignore_index=True)
 
 
 def load_authors_data(dataset):
@@ -134,9 +152,9 @@ def build_legend_handles():
 
     # Line style indicators — thicker and longer for clarity
     handles.append(Line2D([0], [0], color="black", linewidth=2.5, linestyle="-",
-                          label="Solid = Ours"))
-    handles.append(Line2D([0], [0], color="black", linewidth=2.5, linestyle="--",
-                          dashes=DASH_STYLE, label="Dashed = Authors'"))
+                          label="Ours"))
+    handles.append(Line2D([0], [0], color="black", linewidth=3.0, linestyle=(0, (3, 2)),
+                          label="Authors'"))
 
     # Schedulers from (a) and (b)
     for sched, style in AUTHOR_STYLE.items():
@@ -189,7 +207,7 @@ def make_figure(dataset):
         frameon=False,
         columnspacing=0.4,
         handletextpad=0.2,
-        handlelength=1.5,
+        handlelength=3.0,
         borderpad=0,
         labelspacing=0.1,
     )
