@@ -26,16 +26,16 @@ AUTHOR_STYLE = {
     "fcfs":            {"color": "#1f77b4", "marker": "s", "label": "FCFS"},
     "mlfq":            {"color": "#ff7f0e", "marker": "^", "label": "MLFQ"},
     "srtf-PO-X":       {"color": "#2ca02c", "marker": "D", "label": "PO (Oracle)"},
-    "tpt-class10-xxx": {"color": "#d62728", "marker": "o", "label": "Cls. (B=10, w=820)"},
+    "tpt-class10-xxx": {"color": "#d62728", "marker": "o", "label": "Classification (10 buckets, width=820)"},
     "opt-xxx":         {"color": "#9467bd", "marker": "p", "label": "Ranking"},
 }
 
 # New variant styles for subplot (c) — 10-class reuses AUTHOR_STYLE color/marker
 NEW_STYLE = {
-    "tpt-class82-xxx": {"color": "#808080", "marker": "X", "label": "Cls. (B=82, w=100)"},
-    "tpt-width10-xxx": {"color": "#8B4513", "marker": "v", "label": "Cls. (B=820, w=10)"},
-    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Pctl. (B=10, CE)"},
-    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Pctl. (B=10, MSE)"},
+    "tpt-class82-xxx": {"color": "#808080", "marker": "X", "label": "Classification (82 buckets, width=100)"},
+    "tpt-width10-xxx": {"color": "#8B4513", "marker": "v", "label": "Classification (820 buckets, width=10)"},
+    "tpt-pctl10-xxx":  {"color": "#FF69B4", "marker": "d", "label": "Percentile (10 buckets, CE loss)"},
+    "tpt-pctl10-mse-xxx": {"color": "#B19CD9", "marker": "h", "label": "Percentile (10 buckets, MSE loss)"},
 }
 
 DATASET_TITLES = {
@@ -129,18 +129,14 @@ def subplot_variants(ax, our_df, authors_df):
 
 
 def build_legend_handles():
-    """Build a single unified legend for all 3 subplots.
-
-    Row 1: line-style key + schedulers from (a)/(b)
-    Row 2: classification variants from (c)
-    """
+    """Build a single unified legend for all 3 subplots — one row."""
     handles = []
 
-    # Line style indicators first
-    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="-",
-                          label="Ours"))
-    handles.append(Line2D([0], [0], color="black", linewidth=1.5, linestyle="--",
-                          dashes=DASH_STYLE, label="Authors'"))
+    # Line style indicators — thicker and longer for clarity
+    handles.append(Line2D([0], [0], color="black", linewidth=2.5, linestyle="-",
+                          label="Solid = Ours"))
+    handles.append(Line2D([0], [0], color="black", linewidth=2.5, linestyle="--",
+                          dashes=DASH_STYLE, label="Dashed = Authors'"))
 
     # Schedulers from (a) and (b)
     for sched, style in AUTHOR_STYLE.items():
@@ -161,8 +157,8 @@ def make_figure(dataset):
     our_df = load_our_data(dataset)
     authors_df = load_authors_data(dataset)
 
-    # Compact figure — wide enough for single-row legend
-    fig, axes = plt.subplots(1, 3, figsize=(16, 2.9), sharey=True)
+    # Wide figure to fit full descriptive legend in one row
+    fig, axes = plt.subplots(1, 3, figsize=(20, 2.9), sharey=True)
 
     subplot_authors(axes[0], authors_df)
     subplot_ours(axes[1], our_df)
@@ -182,18 +178,18 @@ def make_figure(dataset):
         ax.set_ylim(-0.3, y_ceil + 0.15)
         ax.set_yticks(range(0, y_ceil + 1, 1))
 
-    # Legend on top — single row with shorter labels
+    # Legend on top — single row spanning full figure width
     handles = build_legend_handles()
     fig.legend(
         handles=handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 1.0),
         ncol=len(handles),
-        fontsize=7,
+        fontsize=9,
         frameon=False,
-        columnspacing=0.5,
+        columnspacing=0.4,
         handletextpad=0.2,
-        handlelength=1.2,
+        handlelength=1.5,
         borderpad=0,
         labelspacing=0.1,
     )
