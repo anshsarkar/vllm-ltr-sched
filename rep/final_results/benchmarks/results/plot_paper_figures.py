@@ -110,11 +110,36 @@ def subplot_authors(ax, authors_df):
     ax.set_title("(a) Authors' Results", fontsize=9, fontweight="bold")
 
 
-def subplot_ours(ax, our_df):
-    """Subplot (b): Our reproduction, all solid."""
+def subplot_ours_single(ax, our_df):
+    """Subplot (b): Our reproduction, all solid (single run, no SE bands)."""
     for sched, style in AUTHOR_STYLE.items():
         plot_line(ax, our_df, sched, {**style, "label": "_nolegend_"}, linestyle="solid")
     ax.set_title("(b) Our Reproduction", fontsize=9, fontweight="bold")
+
+
+def subplot_ours(ax, all_runs_df):
+    """Subplot (b): Our reproduction with mean ± SE bands across 3 runs."""
+    if all_runs_df is None:
+        return
+    for sched, style in AUTHOR_STYLE.items():
+        sdf = all_runs_df[all_runs_df["scheduler"] == sched]
+        if sdf.empty:
+            continue
+        rates = sorted(sdf["request_rate"].unique())
+        means, se_lo, se_hi = [], [], []
+        for rate in rates:
+            vals = sdf[sdf["request_rate"] == rate]["mean_nlatency_s"].values
+            m = np.mean(vals)
+            se = np.std(vals, ddof=1) / np.sqrt(len(vals)) if len(vals) > 1 else 0
+            means.append(m)
+            se_lo.append(m - 2 * se)
+            se_hi.append(m + 2 * se)
+        rates = np.array(rates)
+        means = np.array(means)
+        ax.plot(rates, means, color=style["color"], marker=style["marker"],
+                label="_nolegend_", linewidth=LINE_WIDTH, markersize=MARKER_SIZE)
+        ax.fill_between(rates, se_lo, se_hi, color=style["color"], alpha=0.3)
+    ax.set_title("(b) Our Reproduction (mean ± 2SE, n=3)", fontsize=9, fontweight="bold")
 
 
 def subplot_variants(ax, our_df, authors_df):
@@ -173,13 +198,14 @@ def build_legend_handles():
 
 def make_figure(dataset):
     our_df = load_our_data(dataset)
+    all_runs_df = load_all_runs(dataset)
     authors_df = load_authors_data(dataset)
 
     # Wide figure to fit full descriptive legend in one row
     fig, axes = plt.subplots(1, 3, figsize=(20, 2.9), sharey=True)
 
     subplot_authors(axes[0], authors_df)
-    subplot_ours(axes[1], our_df)
+    subplot_ours(axes[1], all_runs_df)
     subplot_variants(axes[2], our_df, authors_df)
 
     # Compute consistent y-axis across all subplots with integer ticks
