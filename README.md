@@ -17,9 +17,6 @@ vllm-ltr-sched/
 │   ├── setup_instance.sh              # One-time instance setup (NVIDIA toolkit, etc.)
 │   ├── setup_conda_env.sh             # Conda environment setup
 │   ├── download_data.sh               # Download datasets and pre-trained models
-│   ├── run_single_bench.sh            # Run a single scheduler at a single rate
-│   ├── run_bench_8b_1gpu_sharegpt.sh  # Full ShareGPT benchmark suite
-│   └── run_bench_8b_1gpu_lmsys.sh     # Full LMSYS-Chat benchmark suite
 ├── rep/final_results/                 # All results from the reproducibility study
 │   ├── training/
 │   │   ├── scripts/                   # Training scripts (train_all.sh, train_pctl10_mse.sh)
@@ -71,6 +68,24 @@ All results from our study are committed to the repository. You do not need to r
 - `rep/final_results/benchmarks/results/plots_for_paper/confidence_interval_sharegpt.pdf`
 - `rep/final_results/benchmarks/results/plots_for_paper/histograms/` (inline distribution histograms)
 
+**Key scripts:**
+
+| Script | Description |
+|--------|-------------|
+| `scripts/setup_instance.sh` | One-time machine setup (NVIDIA toolkit, nvtop) |
+| `scripts/setup_conda_env.sh` | Creates `vllm-ltr` conda env with Python 3.10 and all dependencies |
+| `scripts/download_data.sh` | Downloads datasets and authors' pre-trained model checkpoints from HuggingFace |
+| `rep/final_results/training/scripts/train_all.sh` | Trains class82, pctl10, and width10 classifiers on both datasets |
+| `rep/final_results/training/scripts/train_pctl10_mse.sh` | Trains the percentile MSE variant |
+| `rep/final_results/benchmarks/scripts/run_bench_all_v3.sh` | Runs all 9 schedulers on both datasets (the main benchmark script) |
+| `rep/final_results/analysis/parse_training_logs.py` | Parses raw training logs into `training_metrics.csv` |
+| `rep/final_results/analysis/plot_benchmark_results.py` | Extracts mean normalized latency per scheduler/rate from raw benchmark JSONs to CSV |
+| `rep/final_results/analysis/extract_class_distributions.py` | Extracts class distributions from training data for each classifier |
+| `rep/final_results/analysis/generate_distribution_histograms.py` | Generates inline histogram PDFs for the paper table |
+| `rep/final_results/benchmarks/results/plot_paper_figures.py` | Generates the main 3-subplot comparison figures (authors vs. ours vs. variants) |
+| `rep/final_results/benchmarks/results/plot_confidence_intervals.py` | Generates confidence interval plots (mean with 95% CI across 3 runs) |
+| `rep/final_results/benchmarks/results/compute_prediction_quality.py` | Computes Kendall's tau, accuracy, and other prediction quality metrics |
+
 ## Quick Start (Conda)
 
 **Prerequisites:** NVIDIA GPU with CUDA support, conda.
@@ -90,24 +105,6 @@ bash scripts/setup_conda_env.sh
 # 4. Download datasets and pre-trained models
 conda activate vllm-ltr
 bash scripts/download_data.sh
-
-# 5. Run a single benchmark (quick test)
-bash scripts/run_single_bench.sh -s fcfs -r 2        # FCFS baseline, rate 2
-bash scripts/run_single_bench.sh -s opt-xxx -r 64    # LTR ranking, rate 64
-
-# Or run all 5 schedulers x 6 rates (~3-4 hours)
-bash scripts/run_bench_8b_1gpu_sharegpt.sh
-```
-
-### run_single_bench.sh options
-
-```bash
-bash scripts/run_single_bench.sh -s <scheduler> -r <rate> -t <duration>
-
-# -s  scheduler: fcfs, opt-xxx, tpt-class10-xxx, mlfq, PO
-# -r  request rate (req/s), default: 2
-# -t  duration (seconds), default: 60
-```
 
 ## Reproducing from Scratch
 
@@ -134,14 +131,23 @@ python rep/final_results/analysis/parse_training_logs.py
 
 ### Step 3: Run benchmarks
 
-Each run takes ~3-4 hours on a single A100 GPU.
+We run 3 independent trials to compute standard error. Each run takes ~6-8 hours on a single A100 GPU (9 schedulers x 6 rates x 2 datasets).
+
+**Important:** Before each run, you must update the output directory in two places:
+1. `rep/final_results/benchmarks/scripts/run_bench_all_v3.sh` (lines that set `mkdir -p` and log paths)
+2. `vllm-ltr/benchmarks/bench-final-lmsys-mruns.sh` and `bench-final-sharegpt-mruns.sh` (the `--result-dir` flag in every benchmark command)
+
+Change the directory suffix to match the run number (`lmsys` / `lmsys_test3` / `lmsys_test4`, same for `sharegpt`).
 
 ```bash
-# Run 1
-bash rep/final_results/benchmarks/scripts/run_bench_lmsys.sh
-bash rep/final_results/benchmarks/scripts/run_bench_sharegpt.sh
+# Run 1: edit scripts to use lmsys/ and sharegpt/ as output dirs
+bash rep/final_results/benchmarks/scripts/run_bench_all_v3.sh
 
-# Runs 2 and 3: re-run the same scripts, moving results to _test3 / _test4 directories
+# Run 2: edit scripts to use lmsys_test3/ and sharegpt_test3/
+bash rep/final_results/benchmarks/scripts/run_bench_all_v3.sh
+
+# Run 3: edit scripts to use lmsys_test4/ and sharegpt_test4/
+bash rep/final_results/benchmarks/scripts/run_bench_all_v3.sh
 ```
 
 Raw JSON results are saved per scheduler and request rate in `rep/final_results/benchmarks/results/<dataset>/`.
@@ -150,6 +156,8 @@ Raw JSON results are saved per scheduler and request rate in `rep/final_results/
 
 ```bash
 # Extract mean normalized latency per scheduler/rate from raw JSONs
+
+# Run 1
 python rep/final_results/analysis/plot_benchmark_results.py \
     rep/final_results/benchmarks/results/lmsys \
     -o rep/final_results/benchmarks/results/metrics_lmsys.csv --no-plot
@@ -158,7 +166,23 @@ python rep/final_results/analysis/plot_benchmark_results.py \
     rep/final_results/benchmarks/results/sharegpt \
     -o rep/final_results/benchmarks/results/metrics_sharegpt.csv --no-plot
 
-# Repeat for _test3 and _test4 directories
+# Run 2
+python rep/final_results/analysis/plot_benchmark_results.py \
+    rep/final_results/benchmarks/results/lmsys_test3 \
+    -o rep/final_results/benchmarks/results/metrics_lmsys_test3.csv --no-plot
+
+python rep/final_results/analysis/plot_benchmark_results.py \
+    rep/final_results/benchmarks/results/sharegpt_test3 \
+    -o rep/final_results/benchmarks/results/metrics_sharegpt_test3.csv --no-plot
+
+# Run 3
+python rep/final_results/analysis/plot_benchmark_results.py \
+    rep/final_results/benchmarks/results/lmsys_test4 \
+    -o rep/final_results/benchmarks/results/metrics_lmsys_test4.csv --no-plot
+
+python rep/final_results/analysis/plot_benchmark_results.py \
+    rep/final_results/benchmarks/results/sharegpt_test4 \
+    -o rep/final_results/benchmarks/results/metrics_sharegpt_test4.csv --no-plot
 ```
 
 ### Step 5: Generate paper figures
