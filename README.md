@@ -57,6 +57,9 @@ All results from our study are committed to the repository. You do not need to r
 **Training metrics:**
 - `rep/final_results/training/metrics/training_metrics.csv` (loss, Kendall's tau, accuracy per epoch)
 
+**Class distributions:**
+- `rep/final_results/analysis/class_distributions.csv` (per-bucket sample counts for each classifier)
+
 **Prediction quality:**
 - `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_summary.csv`
 - `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_per_rate.csv`
