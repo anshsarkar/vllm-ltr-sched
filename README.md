@@ -65,10 +65,8 @@ All results from our study are committed to the repository. You do not need to r
 - `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_per_rate.csv`
 
 **Paper figures:**
-- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_lmsys.pdf`
-- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_sharegpt.pdf`
-- `rep/final_results/benchmarks/results/plots_for_paper/confidence_interval_lmsys.pdf`
-- `rep/final_results/benchmarks/results/plots_for_paper/confidence_interval_sharegpt.pdf`
+- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_lmsys.pdf` (3-subplot figure with SE bands in subplot (b))
+- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_sharegpt.pdf` (3-subplot figure with SE bands in subplot (b))
 - `rep/final_results/benchmarks/results/plots_for_paper/histograms/` (inline distribution histograms)
 
 **Key scripts:**
@@ -206,22 +204,6 @@ python rep/final_results/analysis/generate_distribution_histograms.py
 ```
 
 All outputs go to `rep/final_results/benchmarks/results/plots_for_paper/`.
-
-## Extension: Adding a New Classifier Variant
-
-To add a new classifier and benchmark it against existing schedulers:
-
-1. **Train the model.** Use the existing trainers in `vllm-ltr/train/` as a starting point. For example, `trainer.py` trains uniform-width classifiers and `trainer_percentile.py` trains percentile-balanced classifiers. Save the trained model checkpoint.
-
-2. **Register the scheduler.** The vLLM server selects schedulers via the `--schedule-approach` flag. Add a new entry in `vllm-ltr/vllm/` that maps your scheduler name to the model checkpoint path, following the pattern of existing entries (e.g., `tpt-class82-xxx`).
-
-3. **Run benchmarks.** Use the single benchmark script to test:
-   ```bash
-   bash scripts/run_single_bench.sh -s <your-scheduler-name> -r 64
-   ```
-   Or add your scheduler to the benchmark suite scripts in `rep/final_results/benchmarks/scripts/`.
-
-4. **Generate metrics.** Run the analysis pipeline (Steps 4 and 5 above) to produce CSVs and updated figures. Add your scheduler's style entry to `SCHED_STYLE` in the plotting scripts.
 
 ## Citations
 
