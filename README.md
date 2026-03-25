@@ -205,6 +205,17 @@ python rep/final_results/analysis/generate_distribution_histograms.py
 
 All outputs go to `rep/final_results/benchmarks/results/plots_for_paper/`.
 
+## Training a New Predictor
+
+The framework supports two predictor types, both using OPT-125M as the backbone. Trainers are in `vllm-ltr/train/`:
+
+- **`trainer.py`** trains uniform-width classifiers. The `--label-group-size` flag controls bucket width (e.g., 100 gives ~82 classes, 10 gives ~820 classes).
+- **`trainer_percentile.py`** trains percentile-balanced classifiers. The `--num-classes` flag controls the number of buckets.
+
+Training data (JSONL traces with prompt and output length) is downloaded by `scripts/download_data.sh`. See `rep/final_results/training/scripts/train_all.sh` for complete training examples.
+
+Both trainers save checkpoints and a `usage_config.json` to `vllm-ltr/train/MODEL/results/<run-id>/`. To benchmark a trained model, launch the vLLM server with `--schedule-type <name> --prefill-predictor-model-config <path-to-usage_config.json>`, then run the benchmark client. See `vllm-ltr/benchmarks/bench-final-lmsys-mruns.sh` for full server and client command examples.
+
 ## Citations
 
 This repository is a reproducibility study. The citation below is for the **original work** by Fu et al., whose artifact we consume and extend.
