@@ -64,9 +64,16 @@ All results from our study are committed to the repository. You do not need to r
 - `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_summary.csv`
 - `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_per_rate.csv`
 
+**Version drift:**
+- `rep/final_results/analysis/version_drift_raw.csv` (resolved versions for 20 packages across 5 PyPI snapshot dates)
+- `rep/final_results/benchmarks/results/plots_for_paper/version_drift.pdf` (heatmap figure for Appendix B)
+
+Versions were collected using [`pypi-timemachine`](https://github.com/astrofrog/pypi-timemachine), which serves a local PyPI proxy frozen to a given date. We resolved the authors' unpinned dependency specifications (`requirements-common.txt`, `requirements-cuda.txt`) against PyPI snapshots at each date to determine what versions pip would install.
+
 **Paper figures:**
 - `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_lmsys.pdf` (3-subplot figure with SE bands in subplot (b))
 - `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_sharegpt.pdf` (3-subplot figure with SE bands in subplot (b))
+- `rep/final_results/benchmarks/results/plots_for_paper/version_drift.pdf` (dependency version drift heatmap, Appendix B)
 - `rep/final_results/benchmarks/results/plots_for_paper/histograms/` (inline distribution histograms)
 
 **Key scripts:**
@@ -86,6 +93,7 @@ All results from our study are committed to the repository. You do not need to r
 | `rep/final_results/benchmarks/results/plot_paper_figures.py` | Generates the main 3-subplot comparison figures (authors vs. ours vs. variants) |
 | `rep/final_results/benchmarks/results/plot_confidence_intervals.py` | Generates confidence interval plots (mean with 95% CI across 3 runs) |
 | `rep/final_results/benchmarks/results/compute_prediction_quality.py` | Computes Kendall's tau, accuracy, and other prediction quality metrics |
+| `rep/final_results/analysis/plot_version_drift.py` | Generates the version drift heatmap from `version_drift_raw.csv` |
 
 ## Quick Start (Conda)
 
