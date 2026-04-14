@@ -70,34 +70,34 @@ for config in \
 done
 
 # ---- Run LMSYS ----
-mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/lmsys"
+# mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/lmsys"
 
-echo ""
-echo "=========================================="
-echo "  LMSYS-Chat: 8 schedulers x 6 request rates = 48 runs"
-echo "=========================================="
-echo ""
+# echo ""
+# echo "=========================================="
+# echo "  LMSYS-Chat: 8 schedulers x 6 request rates = 48 runs"
+# echo "=========================================="
+# echo ""
 
-bash "$BENCH_DIR/bench-ext-lmsys.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/lmsys/bench_run.log"
+# bash "$BENCH_DIR/bench-ext-lmsys.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/lmsys/bench_run.log"
 
-echo ""
-echo "=== LMSYS benchmarks complete ==="
-echo ""
+# echo ""
+# echo "=== LMSYS benchmarks complete ==="
+# echo ""
 
 # ---- Run ShareGPT ----
-# mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/sharegpt"
+mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/sharegpt"
 
-# echo ""
-# echo "=========================================="
-# echo "  ShareGPT: 8 schedulers x 6 request rates = 48 runs"
-# echo "=========================================="
-# echo ""
+echo ""
+echo "=========================================="
+echo "  ShareGPT: 8 schedulers x 6 request rates = 48 runs"
+echo "=========================================="
+echo ""
 
-# bash "$BENCH_DIR/bench-ext-sharegpt.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/sharegpt/bench_run.log"
+bash "$BENCH_DIR/bench-ext-sharegpt.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/sharegpt/bench_run.log"
 
-# echo ""
-# echo "=========================================="
-# echo "=== All extension benchmarks complete ==="
-# echo "LMSYS results:    $PROJECT_ROOT/extension/benchmarks/results/lmsys/"
-# echo "ShareGPT results: $PROJECT_ROOT/extension/benchmarks/results/sharegpt/"
-# echo "=========================================="
+echo ""
+echo "=========================================="
+echo "=== All extension benchmarks complete ==="
+echo "LMSYS results:    $PROJECT_ROOT/extension/benchmarks/results/lmsys/"
+echo "ShareGPT results: $PROJECT_ROOT/extension/benchmarks/results/sharegpt/"
+echo "=========================================="
