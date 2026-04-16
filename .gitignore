@@ -1,8 +1,8 @@
 # Data and models (large files, downloaded separately)
 /data/
-*.jsonl
-# Logs
-*.log
+# *.jsonl
+# # Logs
+# *.log
 
 # AI memory / scratch (not pushed)
 /docs/
