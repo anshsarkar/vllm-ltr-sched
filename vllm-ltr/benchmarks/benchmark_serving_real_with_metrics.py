@@ -353,7 +353,7 @@ async def benchmark(
     else:
         raise ValueError(f"Unknown backend: {backend}")
 
-    if schedule_type == "fcfs" or schedule_type == "fcfs-origin" or schedule_type.startswith("sjf-predictor-") or schedule_type.startswith("mlfq") or schedule_type.startswith("predictor-") or schedule_type.startswith("opt") or schedule_type.startswith("xpt") or schedule_type.startswith("tpt"):
+    if schedule_type == "fcfs" or schedule_type == "fcfs-origin" or schedule_type.startswith("sjf-predictor-") or schedule_type.startswith("mlfq") or schedule_type.startswith("predictor-") or schedule_type.startswith("opt") or schedule_type.startswith("xpt") or schedule_type.startswith("tpt") or schedule_type.startswith("dsrtf"):
 
         pass
     elif schedule_type.startswith("sjf-noisy-"):
