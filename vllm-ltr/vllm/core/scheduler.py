@@ -1,4 +1,4 @@
-import enum, os
+import enum, os, json
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -327,6 +327,12 @@ class Scheduler:
             self._get_ordered_requests = self._get_opt_ordered_requests
             self._update_priority = self._update_opt_priority
             self.need_score = True
+        elif self.schedule_type.startswith("dsrtf"):
+            self._schedule = self._general_schedule
+            self._get_ordered_requests = self._get_dsrtf_tpt_ordered_requests
+            self._update_priority = self._update_dsrtf_tpt_priority
+            self.need_score = True
+            self._dsrtf_class_to_midpoint = self._build_dsrtf_midpoint_table()
         else:
             assert False, f"Not Supported Schedule Type {self.schedule_type}"
 
@@ -1000,6 +1006,70 @@ class Scheduler:
         return ret 
 
     def _update_opt_priority(self):
+        pass
+
+    def _build_dsrtf_midpoint_table(self):
+        """Build class -> midpoint token estimate mapping for dsrtf scheduler."""
+        stype = self.schedule_type
+        label_max_length = 8192
+
+        if "class10" in stype:
+            width, max_class = 820, label_max_length // 820
+        elif "class82" in stype:
+            width, max_class = 100, label_max_length // 100
+        elif "width10" in stype:
+            width, max_class = 10, label_max_length // 10
+        elif "pctl10" in stype:
+            # Load boundaries from path embedded in schedule-type string:
+            # dsrtf-tpt-pctl10-xxx{/path/to/boundaries.json}
+            # or dsrtf-tpt-pctl10-mse-xxx{/path/to/boundaries.json}
+            bounds_path = stype[stype.find("{") + 1:stype.rfind("}")]
+            with open(bounds_path) as f:
+                bounds_info = json.load(f)
+            boundaries = bounds_info["boundaries"]
+            num_classes = bounds_info["num_classes"]
+            max_len = bounds_info.get("label_max_length", label_max_length)
+            # Class 0 = longest, class num_classes-1 = shortest
+            # bin_idx = num_classes - 1 - class
+            # bin_idx 0: [0, b0), bin_idx i: [b_{i-1}, b_i), bin_idx last: [b_{-1}, max_len]
+            extended = [0] + boundaries + [max_len]
+            table = {}
+            for c in range(num_classes):
+                bin_idx = num_classes - 1 - c
+                table[c] = (extended[bin_idx] + extended[bin_idx + 1]) / 2.0
+            print(f"[dsrtf] pctl midpoint table: {table}")
+            return table
+        else:
+            assert False, f"dsrtf: cannot determine classifier type from {stype}"
+
+        # Uniform-bucket classifiers
+        table = {}
+        for c in range(max_class + 1):
+            table[c] = (max_class - c) * width + width / 2.0
+        print(f"[dsrtf] uniform midpoint table (width={width}, max_class={max_class}): first 5 = {dict(list(table.items())[:5])}")
+        return table
+
+    def _get_dsrtf_tpt_ordered_requests(self):
+        need_aux_scores = []
+        for r in self.waiting:
+            if r.need_aux_model_score():
+                need_aux_scores.append(r)
+
+        if need_aux_scores:
+            self.aux_model.obtain_aux_scores(need_aux_scores)
+
+        midpoint_table = self._dsrtf_class_to_midpoint
+        all_seqs = list(self.waiting) + list(self.running) + list(self.swapped)
+
+        def sort_key(req):
+            pred_class = int(round(req.aux_model_score))
+            est_total = midpoint_table.get(pred_class, 0)
+            decoded = req.seqs_dict[next(iter(req.seqs_dict))].data.get_output_len()
+            return est_total - decoded
+
+        return list(sorted(all_seqs, key=sort_key))
+
+    def _update_dsrtf_tpt_priority(self):
         pass
 
     def _get_ropt_ordered_requests(self):
