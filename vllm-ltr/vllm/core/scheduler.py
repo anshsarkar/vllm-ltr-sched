@@ -1020,10 +1020,9 @@ class Scheduler:
         elif "width10" in stype:
             width, max_class = 10, label_max_length // 10
         elif "pctl10" in stype:
-            # Load boundaries from path embedded in schedule-type string:
-            # dsrtf-tpt-pctl10-xxx{/path/to/boundaries.json}
-            # or dsrtf-tpt-pctl10-mse-xxx{/path/to/boundaries.json}
-            bounds_path = stype[stype.find("{") + 1:stype.rfind("}")]
+            # Load boundaries from DSRTF_BOUNDS_PATH env var
+            bounds_path = os.environ.get("DSRTF_BOUNDS_PATH", "")
+            assert bounds_path, "dsrtf pctl requires DSRTF_BOUNDS_PATH env var pointing to boundaries JSON"
             with open(bounds_path) as f:
                 bounds_info = json.load(f)
             boundaries = bounds_info["boundaries"]
