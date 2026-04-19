@@ -1,3 +1,17 @@
+#srtf-oracle (Oracle SRTF, uses true output lengths, re-sorts by remaining time every step)
+CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 16 --disable-log-requests --schedule-type srtf-oracle --enable-chunked-prefill --enforce-eager --port 3343 &
+sleep 120
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 2 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 4 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 8 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 16 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 32 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+python benchmark_serving_real_with_metrics.py --backend vllm --model meta-llama/Meta-Llama-3-8B-Instruct  --tokenizer meta-llama/Meta-Llama-3-8B-Instruct --dataset llama3-8b-sharegpt-test-t1-s0-8192.jsonl --num-prompts -1 --request-time 60 --schedule-type srtf-oracle --output-len -1 --request-rate 64 --result-dir ../../extension/benchmarks/results/dsrtf_sharegpt --port 3343
+
+kill $!
+sleep 60
+
+
 #dsrtf-tpt-class10 (DSRTF with class10 classifier, bucket=820, 10 classes, authors' checkpoint)
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --swap-space 100 --disable-log-requests --schedule-type dsrtf-tpt-class10-xxx --enable-chunked-prefill --enforce-eager --prefill-predictor-model-config MODEL/results/opt-125m-llama3-8b-sharegpt-class-trainbucket820-b32/usage_config.json --port 3343 &
 sleep 120

@@ -10,7 +10,7 @@ DATA_DIR="$PROJECT_ROOT/data"
 
 cd "$BENCH_DIR"
 
-echo "=== DSRTF Extension Benchmark Runner (5 schedulers x 6 rates x 2 datasets) ==="
+echo "=== DSRTF Extension Benchmark Runner (6 schedulers x 6 rates x 2 datasets) ==="
 
 # ---- Check prerequisites ----
 python -c "import torch; assert torch.cuda.is_available(), 'CUDA not available'; print(f'  GPU: {torch.cuda.get_device_name(0)}')"
