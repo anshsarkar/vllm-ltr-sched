@@ -72,34 +72,34 @@ for bounds in \
 done
 
 # ---- Run LMSYS ----
-mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys"
+# mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys"
 
-echo ""
-echo "=========================================="
-echo "  LMSYS-Chat: 6 schedulers (srtf-oracle + 5 DSRTF) x 6 request rates = 36 runs"
-echo "=========================================="
-echo ""
+# echo ""
+# echo "=========================================="
+# echo "  LMSYS-Chat: 6 schedulers (srtf-oracle + 5 DSRTF) x 6 request rates = 36 runs"
+# echo "=========================================="
+# echo ""
 
-bash "$BENCH_DIR/bench-ext-dsrtf-lmsys.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys/bench_dsrtf_run.log"
+# bash "$BENCH_DIR/bench-ext-dsrtf-lmsys.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys/bench_dsrtf_run.log"
 
-echo ""
-echo "=== LMSYS DSRTF benchmarks complete ==="
-echo ""
+# echo ""
+# echo "=== LMSYS DSRTF benchmarks complete ==="
+# echo ""
 
 # ---- Run ShareGPT ----
-# mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt"
+mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt"
 
-# echo ""
-# echo "=========================================="
-# echo "  ShareGPT: 5 DSRTF schedulers x 6 request rates = 30 runs"
-# echo "=========================================="
-# echo ""
+echo ""
+echo "=========================================="
+echo "  ShareGPT: 5 DSRTF schedulers x 6 request rates = 30 runs"
+echo "=========================================="
+echo ""
 
-# bash "$BENCH_DIR/bench-ext-dsrtf-sharegpt.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt/bench_dsrtf_run.log"
+bash "$BENCH_DIR/bench-ext-dsrtf-sharegpt.sh" 2>&1 | tee "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt/bench_dsrtf_run.log"
 
 echo ""
 echo "=========================================="
 echo "=== All DSRTF extension benchmarks complete ==="
-echo "LMSYS results:    $PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys/"
-# echo "ShareGPT results: $PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt/"
+# echo "LMSYS results:    $PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys/"
+echo "ShareGPT results: $PROJECT_ROOT/extension/benchmarks/results/dsrtf_sharegpt/"
 echo "=========================================="
