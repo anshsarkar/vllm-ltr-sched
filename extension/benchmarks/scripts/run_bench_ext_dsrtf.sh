@@ -76,7 +76,7 @@ mkdir -p "$PROJECT_ROOT/extension/benchmarks/results/dsrtf_lmsys"
 
 echo ""
 echo "=========================================="
-echo "  LMSYS-Chat: 5 DSRTF schedulers x 6 request rates = 30 runs"
+echo "  LMSYS-Chat: 6 schedulers (srtf-oracle + 5 DSRTF) x 6 request rates = 36 runs"
 echo "=========================================="
 echo ""
 
