@@ -1064,7 +1064,8 @@ class Scheduler:
             pred_class = int(round(req.aux_model_score))
             est_total = midpoint_table.get(pred_class, 0)
             decoded = req.seqs_dict[next(iter(req.seqs_dict))].data.get_output_len()
-            return est_total - decoded
+            remaining = est_total - decoded
+            return remaining if remaining >= 0 else decoded
 
         return list(sorted(all_seqs, key=sort_key))
 
