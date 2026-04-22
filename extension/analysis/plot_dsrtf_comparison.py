@@ -43,8 +43,9 @@ PREDICTORS = [
 STYLE_FCFS   = {"color": "#888888", "marker": "s", "ls": "--", "lw": 1.4, "ms": 4}
 STYLE_SJF    = {"color": "#2ca02c", "marker": "D", "ls": "--", "lw": 1.4, "ms": 4}
 STYLE_SRTF   = {"color": "#ff7f0e", "marker": "d", "ls": "--", "lw": 1.4, "ms": 4}
-STYLE_STATIC = {"color": "#1f77b4", "marker": "o", "ls": "-",  "lw": 1.8, "ms": 5}
-STYLE_DSRTF  = {"color": "#d62728", "marker": "^", "ls": "-",  "lw": 1.8, "ms": 5}
+STYLE_STATIC  = {"color": "#1f77b4", "marker": "o", "ls": "-",  "lw": 1.8, "ms": 5}
+STYLE_DSRTF   = {"color": "#d62728", "marker": "^", "ls": "-",  "lw": 1.4, "ms": 4}
+STYLE_DSRTF2  = {"color": "#9467bd", "marker": "P", "ls": "-",  "lw": 1.8, "ms": 5}
 
 
 def parse_filename(fname):
@@ -83,17 +84,25 @@ def load_pt_files(folder):
 
 
 def main():
-    # Load all data: static results from {dataset}/, dsrtf from dsrtf_{dataset}/
+    # Load all data: static from {dataset}/, dsrtf from dsrtf_{dataset}/,
+    # dsrtf_v2 from dsrtf_v2_{dataset}/ (if available)
     all_data = {}
+    has_v2 = False
     for dataset in DATASETS:
         static_folder = os.path.join(RESULTS_ROOT, dataset)
         dsrtf_folder = os.path.join(RESULTS_ROOT, f"dsrtf_{dataset}")
+        v2_folder = os.path.join(RESULTS_ROOT, f"dsrtf_v2_{dataset}")
         static = load_pt_files(static_folder)
         dsrtf = load_pt_files(dsrtf_folder)
-        # Merge into one dict keyed by (scheduler, rate)
         merged = {}
         merged.update(static)
         merged.update(dsrtf)
+        if os.path.isdir(v2_folder):
+            v2 = load_pt_files(v2_folder)
+            # Prefix v2 scheduler keys to distinguish from v1
+            for (sched, rate), val in v2.items():
+                merged[(f"v2-{sched}", rate)] = val
+            has_v2 = True
         all_data[dataset] = merged
 
     fig, axes = plt.subplots(5, 2, figsize=(11, 18), sharex=True)
@@ -105,15 +114,21 @@ def main():
 
             rates = sorted({r for (_, r) in data})
 
-            # Plot 5 lines: baselines + static + dsrtf
-            for sched_key, label, style in [
+            # Plot lines: baselines + static + dsrtf + dsrtf_v2 (if available)
+            lines = [
                 ("fcfs",         "FCFS",         STYLE_FCFS),
                 ("sjf",          "Oracle SJF",   STYLE_SJF),
                 ("srtf-oracle",  "Oracle SRTF",  STYLE_SRTF),
                 (static_key,     "Static",       STYLE_STATIC),
-                (dsrtf_key,      "DSRTF",        STYLE_DSRTF),
-            ]:
+                (dsrtf_key,      "DSRTF v1",     STYLE_DSRTF),
+            ]
+            if has_v2:
+                lines.append((f"v2-{dsrtf_key}", "DSRTF v2", STYLE_DSRTF2))
+
+            for sched_key, label, style in lines:
                 ys = [data.get((sched_key, r), np.nan) for r in rates]
+                if all(np.isnan(y) for y in ys):
+                    continue
                 ax.plot(rates, ys, label=label,
                         color=style["color"], marker=style["marker"],
                         linestyle=style["ls"], linewidth=style["lw"],
@@ -136,7 +151,8 @@ def main():
 
     # Single shared legend at the bottom — labels are role-based, same for all subplots
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=5,
+    ncol = 6 if has_v2 else 5
+    fig.legend(handles, labels, loc="lower center", ncol=ncol,
                fontsize=10, bbox_to_anchor=(0.5, -0.02))
 
     fig.suptitle("Static vs DSRTF Scheduling: Per-Predictor Comparison",
@@ -148,21 +164,39 @@ def main():
     print(f"Plot saved to {out_path}")
 
     # Also print a summary table
-    print("\n=== Mean nlatency summary (static vs DSRTF) ===\n")
-    for dataset in DATASETS:
-        data = all_data[dataset]
-        rates = sorted({r for (_, r) in data})
-        print(f"--- {DATASET_TITLES[dataset]} ---")
-        print(f"{'Predictor':<22} {'Rate':>6} {'Static':>10} {'DSRTF':>10} {'Delta':>10} {'%Change':>10}")
-        print("-" * 72)
-        for static_key, dsrtf_key, pred_name in PREDICTORS:
-            for rate in rates:
-                s = data.get((static_key, rate), np.nan)
-                d = data.get((dsrtf_key, rate), np.nan)
-                delta = d - s
-                pct = 100 * delta / s if s != 0 else np.nan
-                print(f"{pred_name:<22} {rate:>6.0f} {s:>10.4f} {d:>10.4f} {delta:>+10.4f} {pct:>+9.1f}%")
-        print()
+    if has_v2:
+        print("\n=== Mean nlatency summary (static vs DSRTF v1 vs DSRTF v2) ===\n")
+        for dataset in DATASETS:
+            data = all_data[dataset]
+            rates = sorted({r for (_, r) in data})
+            print(f"--- {DATASET_TITLES[dataset]} ---")
+            print(f"{'Predictor':<22} {'Rate':>6} {'Static':>10} {'DSRTF v1':>10} {'v1 %':>8} {'DSRTF v2':>10} {'v2 %':>8}")
+            print("-" * 80)
+            for static_key, dsrtf_key, pred_name in PREDICTORS:
+                for rate in rates:
+                    s = data.get((static_key, rate), np.nan)
+                    d1 = data.get((dsrtf_key, rate), np.nan)
+                    d2 = data.get((f"v2-{dsrtf_key}", rate), np.nan)
+                    pct1 = 100 * (d1 - s) / s if s != 0 else np.nan
+                    pct2 = 100 * (d2 - s) / s if s != 0 else np.nan
+                    print(f"{pred_name:<22} {rate:>6.0f} {s:>10.4f} {d1:>10.4f} {pct1:>+7.1f}% {d2:>10.4f} {pct2:>+7.1f}%")
+            print()
+    else:
+        print("\n=== Mean nlatency summary (static vs DSRTF) ===\n")
+        for dataset in DATASETS:
+            data = all_data[dataset]
+            rates = sorted({r for (_, r) in data})
+            print(f"--- {DATASET_TITLES[dataset]} ---")
+            print(f"{'Predictor':<22} {'Rate':>6} {'Static':>10} {'DSRTF':>10} {'Delta':>10} {'%Change':>10}")
+            print("-" * 72)
+            for static_key, dsrtf_key, pred_name in PREDICTORS:
+                for rate in rates:
+                    s = data.get((static_key, rate), np.nan)
+                    d = data.get((dsrtf_key, rate), np.nan)
+                    delta = d - s
+                    pct = 100 * delta / s if s != 0 else np.nan
+                    print(f"{pred_name:<22} {rate:>6.0f} {s:>10.4f} {d:>10.4f} {delta:>+10.4f} {pct:>+9.1f}%")
+            print()
 
 
 if __name__ == "__main__":
