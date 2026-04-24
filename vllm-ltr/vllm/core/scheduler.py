@@ -317,6 +317,12 @@ class Scheduler:
             self._get_ordered_requests = self._get_xpt_ordered_requests
             self._update_priority = self._update_xpt_priority
             self.need_score = True
+        elif self.schedule_type.startswith("fixshort") or self.schedule_type.startswith("fixlong"):
+            self._schedule = self._general_schedule
+            self._get_ordered_requests = self._get_fixregion_ordered_requests
+            self._update_priority = self._update_fixregion_priority
+            self.need_score = True
+            self._fixregion_config = self._build_fixregion_config()
         elif self.schedule_type.startswith("tpt"):
             self._schedule = self._general_schedule
             self._get_ordered_requests = self._get_tpt_ordered_requests
@@ -1008,6 +1014,85 @@ class Scheduler:
     def _update_opt_priority(self):
         pass
 
+    def _build_fixregion_config(self):
+        """Parse fixshort/fixlong schedule-type string and build config for region-based oracle experiment."""
+        stype = self.schedule_type
+        label_max_length = 8192
+
+        # Parse direction and cutoff: fixlong3-tpt-pctl10-mse-xxx -> direction=long, cutoff=3
+        if stype.startswith("fixlong"):
+            direction = "long"
+            rest = stype[len("fixlong"):]
+        else:
+            direction = "short"
+            rest = stype[len("fixshort"):]
+        # rest is e.g. "3-tpt-pctl10-mse-xxx"; cutoff is the leading digits
+        cutoff_str = ""
+        for ch in rest:
+            if ch.isdigit():
+                cutoff_str += ch
+            else:
+                break
+        cutoff = int(cutoff_str)
+
+        # Determine classifier type and build boundaries
+        if "class10" in stype:
+            width = 820
+            max_class = label_max_length // width
+            num_classes = max_class + 1
+            # true_len -> class: class = max_class - floor(len / width)
+            def true_len_to_class(output_len):
+                c = max_class - int(output_len // width)
+                return max(0, min(max_class, c))
+        elif "class82" in stype:
+            width = 100
+            max_class = label_max_length // width
+            num_classes = max_class + 1
+            def true_len_to_class(output_len):
+                c = max_class - int(output_len // width)
+                return max(0, min(max_class, c))
+        elif "width10" in stype:
+            width = 10
+            max_class = label_max_length // width
+            num_classes = max_class + 1
+            def true_len_to_class(output_len):
+                c = max_class - int(output_len // width)
+                return max(0, min(max_class, c))
+        elif "pctl10" in stype:
+            bounds_path = os.environ.get("DSRTF_BOUNDS_PATH", "")
+            assert bounds_path, "fixregion pctl requires DSRTF_BOUNDS_PATH env var pointing to boundaries JSON"
+            with open(bounds_path) as f:
+                bounds_info = json.load(f)
+            boundaries = bounds_info["boundaries"]
+            num_classes = bounds_info["num_classes"]
+            # bin_idx 0: [0, b0), ..., bin_idx last: [b_{-1}, max_len]
+            # class = num_classes - 1 - bin_idx (class 0 = longest)
+            extended = [0] + boundaries + [label_max_length]
+            def true_len_to_class(output_len):
+                for bin_idx in range(len(extended) - 1):
+                    if output_len < extended[bin_idx + 1]:
+                        return num_classes - 1 - bin_idx
+                return 0  # longest bin
+        else:
+            assert False, f"fixregion: cannot determine classifier type from {stype}"
+
+        # Build the set of fixed classes
+        # Class 0 = longest, class num_classes-1 = shortest
+        if direction == "long":
+            fix_classes = set(range(cutoff))  # classes 0..cutoff-1 (longest)
+        else:
+            fix_classes = set(range(num_classes - cutoff, num_classes))  # shortest
+
+        print(f"[fixregion] direction={direction}, cutoff={cutoff}, num_classes={num_classes}, fix_classes={fix_classes}")
+
+        return {
+            "direction": direction,
+            "cutoff": cutoff,
+            "num_classes": num_classes,
+            "fix_classes": fix_classes,
+            "true_len_to_class": true_len_to_class,
+        }
+
     def _build_dsrtf_midpoint_table(self):
         """Build class -> midpoint token estimate mapping for dsrtf scheduler."""
         stype = self.schedule_type
@@ -1070,6 +1155,34 @@ class Scheduler:
         return list(sorted(all_seqs, key=sort_key))
 
     def _update_dsrtf_tpt_priority(self):
+        pass
+
+    def _get_fixregion_ordered_requests(self):
+        need_aux_scores = []
+        for r in self.waiting:
+            if r.need_aux_model_score():
+                need_aux_scores.append(r)
+
+        if need_aux_scores:
+            self.aux_model.obtain_aux_scores(need_aux_scores)
+
+        config = self._fixregion_config
+        fix_classes = config["fix_classes"]
+        true_len_to_class = config["true_len_to_class"]
+        all_seqs = list(self.waiting) + list(self.running) + list(self.swapped)
+
+        def sort_key(req):
+            pred_class = int(round(req.aux_model_score))
+            true_output_len = req.sampling_params.est_tokens
+            true_class = true_len_to_class(true_output_len)
+            if true_class in fix_classes:
+                return -true_class
+            else:
+                return -pred_class
+
+        return list(sorted(all_seqs, key=sort_key))
+
+    def _update_fixregion_priority(self):
         pass
 
     def _get_ropt_ordered_requests(self):

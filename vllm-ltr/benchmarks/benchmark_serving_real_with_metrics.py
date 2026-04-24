@@ -411,7 +411,7 @@ async def benchmark(
         print(f"Total-work oracle ({schedule_type}, alpha={alpha}): "
               f"Kendall tau vs output_len: {tau:.4f} (p={p:.3e}), "
               f"mean est_tokens: {np.mean(ests):.1f}, mean output_len: {np.mean(real):.1f}")
-    elif schedule_type == "sjf" or schedule_type.startswith("srtf") or schedule_type.startswith("sjf-preempt-") or schedule_type.startswith("sjf-ranking-") or schedule_type.startswith("sjf-file-") :
+    elif schedule_type == "sjf" or schedule_type.startswith("srtf") or schedule_type.startswith("sjf-preempt-") or schedule_type.startswith("sjf-ranking-") or schedule_type.startswith("sjf-file-") or schedule_type.startswith("fixshort") or schedule_type.startswith("fixlong") :
         #only work when output_len==-1
         if schedule_type.startswith("sjf-file-"):
             ee = torch.load(schedule_type[len("sjf-file-"):])
