@@ -215,6 +215,7 @@ def run():
 
         true_labels = []
         predictions = []
+        test_loss_total = 0
 
         predictor.model.eval()
         with torch.no_grad():
@@ -227,11 +228,20 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
+                labels = labels.to("cuda")
+                logits = outputs.view(-1, predictor.model.num_labels)
+                ce_loss = F.cross_entropy(logits, labels.view(-1))
+                p = logits.softmax(dim=-1)
+                cost_vectors = cost_matrix[labels.view(-1)]
+                expected_cost = (p * cost_vectors).sum(dim=-1).mean()
+                test_loss_total += (ce_loss + expected_cost).item()
+
                 predicted_scores = outputs.argmax(dim=-1).tolist()
 
-                true_labels.extend(labels.tolist())
+                true_labels.extend(labels.cpu().tolist())
                 predictions.extend(predicted_scores)
 
+            print(f"Test Loss: {test_loss_total / len(test_dataloader)}")
             tau, score = kendalltau(true_labels, predictions)
             print(f"Kendall's Tau: {tau}, p-value: {score}")
 

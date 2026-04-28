@@ -191,6 +191,7 @@ def run():
 
         true_labels = []
         predictions = []
+        test_loss_total = 0
 
         predictor.model.eval()
         with torch.no_grad():
@@ -203,13 +204,18 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
+                labels_cuda = labels.to("cuda")
                 logits = outputs.view(-1, num_thresholds)
+                ordinal_targets = (labels_cuda.view(-1, 1) > torch.arange(num_thresholds, device='cuda').unsqueeze(0)).float()
+                test_loss_total += F.binary_cross_entropy_with_logits(logits, ordinal_targets).item()
+
                 # Predicted class = number of thresholds exceeded
                 pred_class = (logits.sigmoid() > 0.5).sum(dim=-1).tolist()
 
                 true_labels.extend(labels.tolist())
                 predictions.extend(pred_class)
 
+            print(f"Test Loss: {test_loss_total / len(test_dataloader)}")
             tau, score = kendalltau(true_labels, predictions)
             print(f"Kendall's Tau: {tau}, p-value: {score}")
 

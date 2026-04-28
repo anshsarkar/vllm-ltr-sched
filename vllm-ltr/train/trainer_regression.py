@@ -212,6 +212,7 @@ def run():
         true_tokens_list = []
         pred_tokens_list = []
         predictions = []
+        test_loss_total = 0
 
         predictor.model.eval()
         with torch.no_grad():
@@ -224,8 +225,12 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
-                # Convert predictions back to token space
+                # Compute test loss
+                target = to_target(origin_len.to("cuda"))
                 pred_raw = outputs.view(-1)
+                test_loss_total += F.mse_loss(pred_raw, target).item()
+
+                # Convert predictions back to token space
                 pred_tokens = from_prediction(pred_raw).cpu().numpy()
 
                 true_labels.extend(labels.tolist())
@@ -235,6 +240,8 @@ def run():
                 # Bin predicted tokens into classes for accuracy comparison
                 pred_classes = tokens_to_class(pred_tokens)
                 predictions.extend(pred_classes.tolist())
+
+            print(f"Test Loss: {test_loss_total / len(test_dataloader)}")
 
             # Kendall's tau on raw token predictions (ranking quality)
             tau_tokens, p_tokens = kendalltau(true_tokens_list, pred_tokens_list)
