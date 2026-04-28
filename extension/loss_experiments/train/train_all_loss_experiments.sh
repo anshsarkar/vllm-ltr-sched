@@ -15,10 +15,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+PROJECT_ROOT="$(dirname "$(dirname "$(dirname "$SCRIPT_DIR")")")"
 TRAIN_DIR="$PROJECT_ROOT/vllm-ltr/train"
 DATA_DIR="$PROJECT_ROOT/data/datasets/Llama3-Trace"
-LOG_DIR="$SCRIPT_DIR/logs"
+LOG_DIR="$SCRIPT_DIR/../logs"
 
 cd "$TRAIN_DIR"
 
