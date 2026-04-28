@@ -7,10 +7,9 @@ from vllm.config_predictor import PrefillPredictorConfig
 from vllm.model_executor.prefill_predictor import prefill_predictor_model
 import json
 import torch
+import torch.nn.functional as F
 from argparse import ArgumentParser, Namespace
 from vllm.model_executor.model_loader.utils import set_default_torch_dtype
-from allrank.models.losses.neuralNDCG import neuralNDCG
-from allrank.models.losses.listMLE import listMLE
 from scipy.stats import kendalltau
 from allrank.utils.file_utils import create_output_dirs, PathsContainer, copy_local_to_gs
 import os
@@ -23,11 +22,9 @@ def parse_args():
     parser.add_argument("--print-loss", action='store_true')
     parser.add_argument("--file", type=str, default="")
     parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--metric-name", type=str, default="mse")
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--wc", type=float, default=0.01)
-    parser.add_argument("--loss", type=str, default='crossentropy')
     parser.add_argument("--job-dir", type=str, required=True)
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--label-max-length", type=int, default=8192)
@@ -51,6 +48,20 @@ def compute_percentile_boundaries(lengths, num_classes):
     boundaries = np.unique(boundaries)
     actual_num_classes = len(boundaries) + 1
     return boundaries, actual_num_classes
+
+
+def compute_midpoints(boundaries, num_classes, max_length=8192):
+    midpoints = []
+    for c in range(num_classes):
+        idx = num_classes - 1 - c
+        if idx == 0:
+            lo, hi = 0, boundaries[0]
+        elif idx == len(boundaries):
+            lo, hi = boundaries[-1], max_length
+        else:
+            lo, hi = boundaries[idx - 1], boundaries[idx]
+        midpoints.append((lo + hi) / 2.0)
+    return midpoints
 
 
 class PercentileDataset(Dataset):
@@ -133,6 +144,16 @@ def run():
             lo, hi = int(boundaries[idx - 1]), int(boundaries[idx])
         print(f"  Class {c}: {count} samples ({count/len(train_labels)*100:.1f}%) — tokens [{lo}, {hi})")
 
+    # Compute midpoints and cost matrix for cost-sensitive loss
+    midpoints = compute_midpoints(boundaries, actual_num_classes, args.label_max_length)
+    print(f"Class midpoints (tokens): {[f'{m:.0f}' for m in midpoints]}")
+    midpoints_tensor = torch.tensor(midpoints, dtype=torch.float32, device='cuda')
+    # cost_matrix[j, k] = |midpoint[j] - midpoint[k]|, normalized to [0, 1]
+    cost_matrix = torch.abs(midpoints_tensor.unsqueeze(0) - midpoints_tensor.unsqueeze(1))
+    cost_matrix = cost_matrix / cost_matrix.max()
+    print(f"Cost matrix shape: {cost_matrix.shape}, max raw displacement: "
+          f"{torch.abs(midpoints_tensor.unsqueeze(0) - midpoints_tensor.unsqueeze(1)).max().item():.0f} tokens")
+
     config.model.num_labels = actual_num_classes
     print("num_labels:", config.model.num_labels)
 
@@ -147,15 +168,6 @@ def run():
 
     optimizer = torch.optim.Adam(predictor.model.parameters(), lr=args.lr, weight_decay=args.wc)
     optimizer.zero_grad()
-
-    if args.loss == 'listMLE':
-        loss_func = listMLE
-    if args.loss == 'neuralNDCG':
-        loss_func = neuralNDCG
-    elif args.loss == 'mse':
-        loss_func = torch.nn.MSELoss()
-    elif args.loss == 'crossentropy':
-        loss_func = torch.nn.CrossEntropyLoss()
 
     for epoch in range(args.epoch):
         predictor.model.train()
@@ -175,17 +187,17 @@ def run():
 
                 labels = labels.reshape(1, -1)
                 labels = labels.to("cuda")
-                if args.loss == 'crossentropy':
-                    assert labels.max().item() < predictor.model.num_labels, \
-                        f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    loss = loss_func(logits, labels.view(logits.size(0)))
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    pred_scores = logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
-                    loss = loss_func(pred_scores, labels.view(-1).float())
-                else:
-                    loss = loss_func(outputs.view(1, -1), labels)
+                assert labels.max().item() < predictor.model.num_labels, \
+                    f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
+                logits = outputs.view(-1, predictor.model.num_labels)
+
+                # Cost-sensitive loss: expected normalized token displacement
+                # For each sample, the cost of predicting class k when truth is y
+                # is |midpoint[y] - midpoint[k]| / max_displacement.
+                # Loss = sum_k p_k * cost[y, k], averaged over batch.
+                p = logits.softmax(dim=-1)
+                cost_vectors = cost_matrix[labels.view(-1)]  # [batch, num_classes]
+                loss = (p * cost_vectors).sum(dim=-1).mean()
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -213,13 +225,7 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
-                if args.loss == 'crossentropy':
-                    predicted_scores = outputs.argmax(dim=-1).tolist()
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    predicted_scores = (logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)).tolist()
-                else:
-                    predicted_scores = outputs.squeeze().tolist()
+                predicted_scores = outputs.argmax(dim=-1).tolist()
 
                 true_labels.extend(labels.tolist())
                 predictions.extend(predicted_scores)
@@ -227,11 +233,10 @@ def run():
             tau, score = kendalltau(true_labels, predictions)
             print(f"Kendall's Tau: {tau}, p-value: {score}")
 
-            if args.loss == 'crossentropy':
-                true_arr = np.array(true_labels)
-                pred_arr = np.array(predictions)
-                print(f"Exact accuracy: {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
-                print(f"Within-1 accuracy: {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
+            true_arr = np.array(true_labels)
+            pred_arr = np.array(predictions)
+            print(f"Exact accuracy: {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
+            print(f"Within-1 accuracy: {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
 
     paths = PathsContainer.from_args(args.job_dir, args.run_id, prefill_predictor_model_config)
 
@@ -253,6 +258,8 @@ def run():
         "num_classes_requested": args.num_classes,
         "label_max_length": args.label_max_length,
         "convention": "higher_label=shorter_output",
+        "loss": "costsensitive_ce",
+        "midpoints": midpoints,
         "length_stats": {
             "min": int(train_lengths.min()),
             "max": int(train_lengths.max()),

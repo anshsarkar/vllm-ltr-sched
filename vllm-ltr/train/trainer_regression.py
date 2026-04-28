@@ -7,10 +7,9 @@ from vllm.config_predictor import PrefillPredictorConfig
 from vllm.model_executor.prefill_predictor import prefill_predictor_model
 import json
 import torch
+import torch.nn.functional as F
 from argparse import ArgumentParser, Namespace
 from vllm.model_executor.model_loader.utils import set_default_torch_dtype
-from allrank.models.losses.neuralNDCG import neuralNDCG
-from allrank.models.losses.listMLE import listMLE
 from scipy.stats import kendalltau
 from allrank.utils.file_utils import create_output_dirs, PathsContainer, copy_local_to_gs
 import os
@@ -23,15 +22,15 @@ def parse_args():
     parser.add_argument("--print-loss", action='store_true')
     parser.add_argument("--file", type=str, default="")
     parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--metric-name", type=str, default="mse")
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--wc", type=float, default=0.01)
-    parser.add_argument("--loss", type=str, default='crossentropy')
     parser.add_argument("--job-dir", type=str, required=True)
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--label-max-length", type=int, default=8192)
     parser.add_argument("--num-classes", type=int, default=20)
+    parser.add_argument("--log-space", action='store_true',
+                        help="Train in log(1+tokens) space instead of raw token space")
     parser.add_argument("--tokenizer", type=str, default="meta-llama/Meta-Llama-3-70B")
 
     return parser.parse_args()
@@ -53,7 +52,7 @@ def compute_percentile_boundaries(lengths, num_classes):
     return boundaries, actual_num_classes
 
 
-class PercentileDataset(Dataset):
+class RegressionDataset(Dataset):
     def __init__(self, data, tokenizer, boundaries, max_length=2048, precomputed_lengths=None):
         self.data = data
         self.tokenizer = tokenizer
@@ -111,7 +110,7 @@ def run():
     train_lengths = all_lengths[:split_idx]
     test_lengths = all_lengths[split_idx:]
 
-    # Compute percentile boundaries from training data only
+    # Compute percentile boundaries from training data (for eval binning)
     boundaries, actual_num_classes = compute_percentile_boundaries(train_lengths, args.num_classes)
 
     print(f"Requested {args.num_classes} classes, got {actual_num_classes} after dedup")
@@ -119,43 +118,62 @@ def run():
     print(f"Length stats - min: {train_lengths.min()}, max: {train_lengths.max()}, "
           f"mean: {train_lengths.mean():.1f}, median: {np.median(train_lengths):.1f}")
 
-    # Print class distribution
+    # Print class distribution (for reference)
     train_labels = np.array([actual_num_classes - 1 - int(np.searchsorted(boundaries, l)) for l in train_lengths])
     for c in range(actual_num_classes):
         count = (train_labels == c).sum()
-        # map class back to length range
-        idx = actual_num_classes - 1 - c
-        if idx == 0:
+        idx_b = actual_num_classes - 1 - c
+        if idx_b == 0:
             lo, hi = 0, int(boundaries[0])
-        elif idx == len(boundaries):
+        elif idx_b == len(boundaries):
             lo, hi = int(boundaries[-1]), int(train_lengths.max())
         else:
-            lo, hi = int(boundaries[idx - 1]), int(boundaries[idx])
+            lo, hi = int(boundaries[idx_b - 1]), int(boundaries[idx_b])
         print(f"  Class {c}: {count} samples ({count/len(train_labels)*100:.1f}%) — tokens [{lo}, {hi})")
 
-    config.model.num_labels = actual_num_classes
+    if args.log_space:
+        print("Training in log(1 + tokens) space")
+    else:
+        print("Training in raw token space")
+
+    # Single regression output
+    config.model.num_labels = 1
     print("num_labels:", config.model.num_labels)
 
     with set_default_torch_dtype(torch.float32):
         with torch.device('cuda'):
             predictor = prefill_predictor_model(pred_model=config.model.pred_model, num_labels=config.model.num_labels, mtype=config.model.mtype, activation=config.model.activation, max_length=config.model.max_length, max_batch_size=config.model.max_batch_size)
 
-    train_dataset = PercentileDataset(train_data, llama3_tokenizer, boundaries, max_length=config.model.max_length, precomputed_lengths=train_lengths)
-    test_dataset = PercentileDataset(test_data, llama3_tokenizer, boundaries, max_length=config.model.max_length, precomputed_lengths=test_lengths)
+    train_dataset = RegressionDataset(train_data, llama3_tokenizer, boundaries, max_length=config.model.max_length, precomputed_lengths=train_lengths)
+    test_dataset = RegressionDataset(test_data, llama3_tokenizer, boundaries, max_length=config.model.max_length, precomputed_lengths=test_lengths)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
     optimizer = torch.optim.Adam(predictor.model.parameters(), lr=args.lr, weight_decay=args.wc)
     optimizer.zero_grad()
 
-    if args.loss == 'listMLE':
-        loss_func = listMLE
-    if args.loss == 'neuralNDCG':
-        loss_func = neuralNDCG
-    elif args.loss == 'mse':
-        loss_func = torch.nn.MSELoss()
-    elif args.loss == 'crossentropy':
-        loss_func = torch.nn.CrossEntropyLoss()
+    # Helper to convert token length to regression target
+    def to_target(token_lengths):
+        t = token_lengths.float()
+        if args.log_space:
+            t = torch.log1p(t)
+        return t
+
+    # Helper to convert regression prediction back to token space
+    def from_prediction(pred):
+        if args.log_space:
+            pred = torch.expm1(pred)
+        return pred.clamp(min=0)
+
+    # Helper to bin predicted tokens into percentile classes
+    def tokens_to_class(token_lengths_np):
+        classes = []
+        for t in token_lengths_np:
+            idx_b = int(np.searchsorted(boundaries, t))
+            c = actual_num_classes - 1 - idx_b
+            c = max(0, min(actual_num_classes - 1, c))
+            classes.append(c)
+        return np.array(classes)
 
     for epoch in range(args.epoch):
         predictor.model.train()
@@ -173,19 +191,10 @@ def run():
 
                 outputs = predictor(input_ids, attention_mask)
 
-                labels = labels.reshape(1, -1)
-                labels = labels.to("cuda")
-                if args.loss == 'crossentropy':
-                    assert labels.max().item() < predictor.model.num_labels, \
-                        f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    loss = loss_func(logits, labels.view(logits.size(0)))
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    pred_scores = logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
-                    loss = loss_func(pred_scores, labels.view(-1).float())
-                else:
-                    loss = loss_func(outputs.view(1, -1), labels)
+                # Regression target: true token length (or log)
+                target = to_target(origin_len.to("cuda"))
+                pred = outputs.view(-1)
+                loss = F.mse_loss(pred, target)
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -200,6 +209,8 @@ def run():
         print(f"Epoch {epoch+1}, Loss: {total_loss / len(train_dataloader)}")
 
         true_labels = []
+        true_tokens_list = []
+        pred_tokens_list = []
         predictions = []
 
         predictor.model.eval()
@@ -213,25 +224,38 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
-                if args.loss == 'crossentropy':
-                    predicted_scores = outputs.argmax(dim=-1).tolist()
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    predicted_scores = (logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)).tolist()
-                else:
-                    predicted_scores = outputs.squeeze().tolist()
+                # Convert predictions back to token space
+                pred_raw = outputs.view(-1)
+                pred_tokens = from_prediction(pred_raw).cpu().numpy()
 
                 true_labels.extend(labels.tolist())
-                predictions.extend(predicted_scores)
+                true_tokens_list.extend(origin_len.tolist())
+                pred_tokens_list.extend(pred_tokens.tolist())
 
-            tau, score = kendalltau(true_labels, predictions)
-            print(f"Kendall's Tau: {tau}, p-value: {score}")
+                # Bin predicted tokens into classes for accuracy comparison
+                pred_classes = tokens_to_class(pred_tokens)
+                predictions.extend(pred_classes.tolist())
 
-            if args.loss == 'crossentropy':
-                true_arr = np.array(true_labels)
-                pred_arr = np.array(predictions)
-                print(f"Exact accuracy: {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
-                print(f"Within-1 accuracy: {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
+            # Kendall's tau on raw token predictions (ranking quality)
+            tau_tokens, p_tokens = kendalltau(true_tokens_list, pred_tokens_list)
+            print(f"Kendall's Tau (tokens): {tau_tokens}, p-value: {p_tokens}")
+
+            # Kendall's tau on binned class predictions (comparable to classifiers)
+            tau_class, p_class = kendalltau(true_labels, predictions)
+            print(f"Kendall's Tau (class): {tau_class}, p-value: {p_class}")
+
+            # Token-level error stats
+            true_tok = np.array(true_tokens_list)
+            pred_tok = np.array(pred_tokens_list)
+            mae = np.mean(np.abs(true_tok - pred_tok))
+            rmse = np.sqrt(np.mean((true_tok - pred_tok) ** 2))
+            print(f"MAE: {mae:.1f} tokens, RMSE: {rmse:.1f} tokens")
+
+            # Class-level accuracy (binned)
+            true_arr = np.array(true_labels)
+            pred_arr = np.array(predictions)
+            print(f"Exact accuracy (binned): {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
+            print(f"Within-1 accuracy (binned): {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
 
     paths = PathsContainer.from_args(args.job_dir, args.run_id, prefill_predictor_model_config)
 
@@ -253,6 +277,10 @@ def run():
         "num_classes_requested": args.num_classes,
         "label_max_length": args.label_max_length,
         "convention": "higher_label=shorter_output",
+        "loss": "regression_mse" + ("_logspace" if args.log_space else ""),
+        "output": "single_token_count" + ("_logspace" if args.log_space else ""),
+        "inference_static": "bin predicted tokens into percentile classes",
+        "inference_dsrtf": "use raw predicted tokens as est_total",
         "length_stats": {
             "min": int(train_lengths.min()),
             "max": int(train_lengths.max()),

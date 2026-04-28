@@ -7,10 +7,9 @@ from vllm.config_predictor import PrefillPredictorConfig
 from vllm.model_executor.prefill_predictor import prefill_predictor_model
 import json
 import torch
+import torch.nn.functional as F
 from argparse import ArgumentParser, Namespace
 from vllm.model_executor.model_loader.utils import set_default_torch_dtype
-from allrank.models.losses.neuralNDCG import neuralNDCG
-from allrank.models.losses.listMLE import listMLE
 from scipy.stats import kendalltau
 from allrank.utils.file_utils import create_output_dirs, PathsContainer, copy_local_to_gs
 import os
@@ -23,11 +22,9 @@ def parse_args():
     parser.add_argument("--print-loss", action='store_true')
     parser.add_argument("--file", type=str, default="")
     parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--metric-name", type=str, default="mse")
     parser.add_argument("--epoch", type=int, default=5)
     parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--wc", type=float, default=0.01)
-    parser.add_argument("--loss", type=str, default='crossentropy')
     parser.add_argument("--job-dir", type=str, required=True)
     parser.add_argument("--run-id", type=str, required=True)
     parser.add_argument("--label-max-length", type=int, default=8192)
@@ -133,8 +130,13 @@ def run():
             lo, hi = int(boundaries[idx - 1]), int(boundaries[idx])
         print(f"  Class {c}: {count} samples ({count/len(train_labels)*100:.1f}%) — tokens [{lo}, {hi})")
 
-    config.model.num_labels = actual_num_classes
-    print("num_labels:", config.model.num_labels)
+    # CORAL uses K-1 binary thresholds for K classes
+    num_thresholds = actual_num_classes - 1
+    print(f"CORAL: {actual_num_classes} classes -> {num_thresholds} binary thresholds")
+
+    # Set num_labels to K-1 for the model head (one output per threshold)
+    config.model.num_labels = num_thresholds
+    print("num_labels (thresholds):", config.model.num_labels)
 
     with set_default_torch_dtype(torch.float32):
         with torch.device('cuda'):
@@ -147,15 +149,6 @@ def run():
 
     optimizer = torch.optim.Adam(predictor.model.parameters(), lr=args.lr, weight_decay=args.wc)
     optimizer.zero_grad()
-
-    if args.loss == 'listMLE':
-        loss_func = listMLE
-    if args.loss == 'neuralNDCG':
-        loss_func = neuralNDCG
-    elif args.loss == 'mse':
-        loss_func = torch.nn.MSELoss()
-    elif args.loss == 'crossentropy':
-        loss_func = torch.nn.CrossEntropyLoss()
 
     for epoch in range(args.epoch):
         predictor.model.train()
@@ -173,19 +166,16 @@ def run():
 
                 outputs = predictor(input_ids, attention_mask)
 
-                labels = labels.reshape(1, -1)
                 labels = labels.to("cuda")
-                if args.loss == 'crossentropy':
-                    assert labels.max().item() < predictor.model.num_labels, \
-                        f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    loss = loss_func(logits, labels.view(logits.size(0)))
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    pred_scores = logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
-                    loss = loss_func(pred_scores, labels.view(-1).float())
-                else:
-                    loss = loss_func(outputs.view(1, -1), labels)
+                logits = outputs.view(-1, num_thresholds)
+
+                # CORAL: convert class label to K-1 binary ordinal targets
+                # Class c -> [c > 0, c > 1, ..., c > K-2]
+                # e.g. class 3 with K=10: [1, 1, 1, 0, 0, 0, 0, 0, 0]
+                ordinal_targets = (labels.view(-1, 1) > torch.arange(num_thresholds, device='cuda').unsqueeze(0)).float()
+
+                # Sum of K-1 binary cross-entropy losses
+                loss = F.binary_cross_entropy_with_logits(logits, ordinal_targets)
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -213,25 +203,20 @@ def run():
                 with torch.autocast(device_type="cuda"):
                     outputs = predictor(input_ids, attention_mask)
 
-                if args.loss == 'crossentropy':
-                    predicted_scores = outputs.argmax(dim=-1).tolist()
-                elif args.loss == 'mse':
-                    logits = outputs.view(-1, predictor.model.num_labels)
-                    predicted_scores = (logits.softmax(dim=-1) @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)).tolist()
-                else:
-                    predicted_scores = outputs.squeeze().tolist()
+                logits = outputs.view(-1, num_thresholds)
+                # Predicted class = number of thresholds exceeded
+                pred_class = (logits.sigmoid() > 0.5).sum(dim=-1).tolist()
 
                 true_labels.extend(labels.tolist())
-                predictions.extend(predicted_scores)
+                predictions.extend(pred_class)
 
             tau, score = kendalltau(true_labels, predictions)
             print(f"Kendall's Tau: {tau}, p-value: {score}")
 
-            if args.loss == 'crossentropy':
-                true_arr = np.array(true_labels)
-                pred_arr = np.array(predictions)
-                print(f"Exact accuracy: {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
-                print(f"Within-1 accuracy: {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
+            true_arr = np.array(true_labels)
+            pred_arr = np.array(predictions)
+            print(f"Exact accuracy: {(true_arr == pred_arr).sum() / len(true_arr):.4f}")
+            print(f"Within-1 accuracy: {(np.abs(true_arr - pred_arr) <= 1).sum() / len(true_arr):.4f}")
 
     paths = PathsContainer.from_args(args.job_dir, args.run_id, prefill_predictor_model_config)
 
@@ -240,6 +225,9 @@ def run():
     finetuned_model_output_path = os.path.join(paths.output_dir, "finetuned")
 
     config.model.path = str(finetuned_model_output_path)
+
+    # Save with num_thresholds (K-1) as the head size
+    config.model.num_labels = num_thresholds
 
     create_output_dirs(paths.output_dir)
 
@@ -250,9 +238,12 @@ def run():
     boundaries_info = {
         "boundaries": boundaries.tolist(),
         "num_classes": actual_num_classes,
+        "num_thresholds": num_thresholds,
         "num_classes_requested": args.num_classes,
         "label_max_length": args.label_max_length,
         "convention": "higher_label=shorter_output",
+        "loss": "coral_ordinal",
+        "inference": "predicted_class = count(sigmoid(logit_k) > 0.5)",
         "length_stats": {
             "min": int(train_lengths.min()),
             "max": int(train_lengths.max()),
@@ -264,7 +255,7 @@ def run():
         json.dump(boundaries_info, f, indent=2)
     print(f"Saved percentile boundaries to {boundaries_path}")
 
-    predictor.model.config.__dict__['num_labels'] = config.model.num_labels
+    predictor.model.config.__dict__['num_labels'] = num_thresholds
 
     predictor.model = predictor.model.half()
     predictor.model.save_pretrained(finetuned_model_output_path)
