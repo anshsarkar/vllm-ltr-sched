@@ -148,11 +148,7 @@ def run():
     midpoints = compute_midpoints(boundaries, actual_num_classes, args.label_max_length)
     print(f"Class midpoints (tokens): {[f'{m:.0f}' for m in midpoints]}")
     midpoints_tensor = torch.tensor(midpoints, dtype=torch.float32, device='cuda')
-    # cost_matrix[j, k] = |midpoint[j] - midpoint[k]|, normalized to [0, 1]
-    cost_matrix = torch.abs(midpoints_tensor.unsqueeze(0) - midpoints_tensor.unsqueeze(1))
-    cost_matrix = cost_matrix / cost_matrix.max()
-    print(f"Cost matrix shape: {cost_matrix.shape}, max raw displacement: "
-          f"{torch.abs(midpoints_tensor.unsqueeze(0) - midpoints_tensor.unsqueeze(1)).max().item():.0f} tokens")
+    print(f"Midpoint range: {midpoints_tensor.min().item():.0f} - {midpoints_tensor.max().item():.0f} tokens")
 
     config.model.num_labels = actual_num_classes
     print("num_labels:", config.model.num_labels)
@@ -191,15 +187,14 @@ def run():
                     f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
                 logits = outputs.view(-1, predictor.model.num_labels)
 
-                # Cost-sensitive loss = CE + expected token displacement.
-                # CE provides strong classification gradient.
-                # Expected cost penalizes distant misclassifications
-                # proportionally to token-space displacement.
-                ce_loss = F.cross_entropy(logits, labels.view(-1))
+                # Token-space MSE: same as class-index MSE but with
+                # midpoints instead of arange. A 1-class error at the
+                # long end (~2400 tokens) is penalized ~100x more than
+                # at the short end (~8 tokens).
                 p = logits.softmax(dim=-1)
-                cost_vectors = cost_matrix[labels.view(-1)]  # [batch, num_classes]
-                expected_cost = (p * cost_vectors).sum(dim=-1).mean()
-                loss = ce_loss + expected_cost
+                pred_tokens = p @ midpoints_tensor          # expected token count
+                true_tokens = midpoints_tensor[labels.view(-1)]  # midpoint of true class
+                loss = F.mse_loss(pred_tokens, true_tokens)
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -260,7 +255,7 @@ def run():
         "num_classes_requested": args.num_classes,
         "label_max_length": args.label_max_length,
         "convention": "higher_label=shorter_output",
-        "loss": "costsensitive_ce",
+        "loss": "costsensitive_mse",
         "midpoints": midpoints,
         "length_stats": {
             "min": int(train_lengths.min()),

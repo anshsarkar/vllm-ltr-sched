@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
-# Train all 3 B4 loss experiment variants on both datasets (6 runs total).
+# Train all 4 B4 loss experiment variants on both datasets (8 runs total).
 #
-# Experiment 1: Cost-sensitive CE (trainer_costsensitive_ce.py)
-# Experiment 2: CORAL ordinal regression (trainer_coral.py)
-# Experiment 3: Direct token regression (trainer_regression.py)
+# Experiment 1a: Cost-sensitive CE + expected cost (trainer_costsensitive_ce.py)
+# Experiment 1b: Cost-sensitive MSE in token space (trainer_costsensitive_mse.py)
+# Experiment 2:  CORAL ordinal regression (trainer_coral.py)
+# Experiment 3:  Direct token regression (trainer_regression.py)
 #
 # Same backbone (OPT-125m), same percentile boundaries (10 classes),
 # same hyperparameters (batch 4, epoch 5, lr 2e-5) as the pctl10-mse baseline.
@@ -42,7 +43,7 @@ SHAREGPT_FILE="jsonfiles/llama3-8b-sharegpt-train-t1-s0-8192.jsonl"
 # ──────────────────────────────────────────────
 # Experiment 1: Cost-Sensitive CE
 # ──────────────────────────────────────────────
-echo "=== [1/6] Training cost-sensitive CE — LMSYS ==="
+echo "=== [1/8] Training cost-sensitive CE — LMSYS ==="
 python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
     --file "$LMSYS_FILE" \
     --job-dir MODEL \
@@ -52,7 +53,7 @@ python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.
     --epoch 5 \
     2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_ce.log"
 
-echo "=== [2/6] Training cost-sensitive CE — ShareGPT ==="
+echo "=== [2/8] Training cost-sensitive CE — ShareGPT ==="
 python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
     --file "$SHAREGPT_FILE" \
     --job-dir MODEL \
@@ -63,9 +64,32 @@ python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.
     2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_ce.log"
 
 # ──────────────────────────────────────────────
+# Experiment 1b: Cost-Sensitive MSE (token-space)
+# ──────────────────────────────────────────────
+echo "=== [3/8] Training cost-sensitive MSE — LMSYS ==="
+python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
+    --file "$LMSYS_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-mse-b4-ext \
+    --batch-size 4 \
+    --num-classes 10 \
+    --epoch 5 \
+    2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_mse.log"
+
+echo "=== [4/8] Training cost-sensitive MSE — ShareGPT ==="
+python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
+    --file "$SHAREGPT_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-mse-b4-ext \
+    --batch-size 4 \
+    --num-classes 10 \
+    --epoch 5 \
+    2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_mse.log"
+
+# ──────────────────────────────────────────────
 # Experiment 2: CORAL Ordinal Regression
 # ──────────────────────────────────────────────
-echo "=== [3/6] Training CORAL ordinal — LMSYS ==="
+echo "=== [5/8] Training CORAL ordinal — LMSYS ==="
 python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
     --file "$LMSYS_FILE" \
     --job-dir MODEL \
@@ -75,7 +99,7 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
     --epoch 5 \
     2>&1 | tee "$LOG_DIR/train_lmsys_coral.log"
 
-echo "=== [4/6] Training CORAL ordinal — ShareGPT ==="
+echo "=== [6/8] Training CORAL ordinal — ShareGPT ==="
 python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
     --file "$SHAREGPT_FILE" \
     --job-dir MODEL \
@@ -88,7 +112,7 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
 # ──────────────────────────────────────────────
 # Experiment 3: Direct Token Regression
 # ──────────────────────────────────────────────
-echo "=== [5/6] Training regression — LMSYS ==="
+echo "=== [7/8] Training regression — LMSYS ==="
 python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
     --file "$LMSYS_FILE" \
     --job-dir MODEL \
@@ -98,7 +122,7 @@ python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
     --epoch 5 \
     2>&1 | tee "$LOG_DIR/train_lmsys_regression.log"
 
-echo "=== [6/6] Training regression — ShareGPT ==="
+echo "=== [8/8] Training regression — ShareGPT ==="
 python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
     --file "$SHAREGPT_FILE" \
     --job-dir MODEL \
@@ -109,5 +133,5 @@ python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
     2>&1 | tee "$LOG_DIR/train_sharegpt_regression.log"
 
 echo ""
-echo "All 3 loss experiments trained (6 runs total). Logs in: $LOG_DIR"
+echo "All 3 loss experiments trained (8 runs total). Logs in: $LOG_DIR"
 echo "Checkpoints in: $TRAIN_DIR/MODEL/results/*-b4-ext/"
