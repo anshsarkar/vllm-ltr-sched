@@ -134,6 +134,30 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
 #     --epoch 5 \
 #     2>&1 | tee "$LOG_DIR/train_sharegpt_regression.log"
 
+# ──────────────────────────────────────────────
+# Experiment 4: Ranking (listMLE) — authors' model retrained locally
+# Compare with authors' pre-trained checkpoints to verify reproducibility.
+# ──────────────────────────────────────────────
+echo "=== [9/10] Training ranking (listMLE) — LMSYS ==="
+python trainer.py --config configs/config_prefill_opt.txt \
+    --file "$LMSYS_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-lmsys-ranking-listmle-b4-ext \
+    --batch-size 4 \
+    --label-group-size 10 \
+    --loss listMLE \
+    2>&1 | tee "$LOG_DIR/train_lmsys_ranking_listmle.log"
+
+echo "=== [10/10] Training ranking (listMLE) — ShareGPT ==="
+python trainer.py --config configs/config_prefill_opt.txt \
+    --file "$SHAREGPT_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-sharegpt-ranking-listmle-b4-ext \
+    --batch-size 4 \
+    --label-group-size 10 \
+    --loss listMLE \
+    2>&1 | tee "$LOG_DIR/train_sharegpt_ranking_listmle.log"
+
 echo ""
-echo "All 3 loss experiments trained (8 runs total). Logs in: $LOG_DIR"
+echo "All loss experiments trained. Logs in: $LOG_DIR"
 echo "Checkpoints in: $TRAIN_DIR/MODEL/results/*-b4-ext/"
