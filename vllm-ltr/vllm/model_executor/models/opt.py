@@ -392,7 +392,11 @@ class OPTForSequenceClassification(nn.Module):
         logits = self.logits_processor(self.score.weight, hidden_states,
                                        sampling_metadata)
         if self.num_labels > 1 and logits is not None:
-            logits = logits[:,:self.num_labels].argmax(dim=-1, keepdim=True).float()
+            if getattr(self.config, 'mtype', None) == 'coral':
+                # CORAL: count thresholds where sigmoid > 0.5
+                logits = (logits[:,:self.num_labels].sigmoid() > 0.5).sum(dim=-1, keepdim=True).float()
+            else:
+                logits = logits[:,:self.num_labels].argmax(dim=-1, keepdim=True).float()
         #print('out logits: ', logits.size() if logits is not None else None)
         return logits
 

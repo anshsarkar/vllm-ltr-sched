@@ -264,6 +264,7 @@ def run():
     print(f"Saved percentile boundaries to {boundaries_path}")
 
     predictor.model.config.__dict__['num_labels'] = num_thresholds
+    predictor.model.config.__dict__['mtype'] = 'coral'
 
     predictor.model = predictor.model.half()
     predictor.model.save_pretrained(finetuned_model_output_path)
