@@ -149,10 +149,13 @@ def run():
     print(f"Class midpoints (tokens): {[f'{m:.0f}' for m in midpoints]}")
     midpoints_tensor = torch.tensor(midpoints, dtype=torch.float32, device='cuda')
     print(f"Midpoint range: {midpoints_tensor.min().item():.0f} - {midpoints_tensor.max().item():.0f} tokens")
-    # Normalize midpoints to [0, 1] so loss/gradient scale matches baseline
-    # class-index MSE. Relative weighting is preserved: long-end errors
-    # still dominate proportionally to token displacement.
-    midpoints_tensor = midpoints_tensor / midpoints_tensor.max()
+    # Per-class weights: normalized so mean=1 to preserve loss scale.
+    # Long-output classes (class 0, midpoint ~4431) get weight ~6.9x,
+    # short-output classes (class 9, midpoint ~9) get weight ~0.014x.
+    # This penalizes errors on long-output requests proportionally to
+    # their token midpoint without changing the target distribution.
+    class_weights = midpoints_tensor / midpoints_tensor.mean()
+    print(f"Class weights (mean-normalized): min={class_weights.min().item():.3f}, max={class_weights.max().item():.3f}")
 
     config.model.num_labels = actual_num_classes
     print("num_labels:", config.model.num_labels)
@@ -191,13 +194,16 @@ def run():
                     f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
                 logits = outputs.view(-1, predictor.model.num_labels)
 
-                # Exit autocast for loss: token-space MSE gradients
-                # overflow float16 (midpoint * error ≈ 4431 * 4422 > 65504)
-                with torch.cuda.amp.autocast(enabled=False):
-                    p = logits.float().softmax(dim=-1)
-                    pred_tokens = p @ midpoints_tensor          # both float32
-                    true_tokens = midpoints_tensor[labels.view(-1)]
-                    loss = F.mse_loss(pred_tokens, true_tokens)
+                # Weighted class-index MSE: same structure as baseline
+                # (softmax @ arange → class index prediction) but weight
+                # each sample's squared error by its true class's token
+                # midpoint. Avoids collapse from skewed token-space targets.
+                p = logits.softmax(dim=-1)
+                pred_scores = p @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
+                target = labels.view(-1).float().to(logits.dtype)
+                per_sample_loss = (pred_scores - target) ** 2
+                weights = class_weights[labels.view(-1)].to(logits.dtype)
+                loss = (weights * per_sample_loss).mean()
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -228,11 +234,12 @@ def run():
 
                 labels = labels.to("cuda")
                 logits = outputs.view(-1, predictor.model.num_labels)
-                with torch.cuda.amp.autocast(enabled=False):
-                    p = logits.float().softmax(dim=-1)
-                    pred_tokens = p @ midpoints_tensor
-                    true_tokens = midpoints_tensor[labels.view(-1)]
-                    test_loss_total += F.mse_loss(pred_tokens, true_tokens).item()
+                p = logits.softmax(dim=-1)
+                pred_scores = p @ torch.arange(predictor.model.num_labels, device=logits.device, dtype=logits.dtype)
+                target = labels.view(-1).float().to(logits.dtype)
+                per_sample_loss = (pred_scores - target) ** 2
+                weights = class_weights[labels.view(-1)].to(logits.dtype)
+                test_loss_total += (weights * per_sample_loss).mean().item()
 
                 predicted_scores = outputs.argmax(dim=-1).tolist()
 
@@ -268,7 +275,7 @@ def run():
         "num_classes_requested": args.num_classes,
         "label_max_length": args.label_max_length,
         "convention": "higher_label=shorter_output",
-        "loss": "costsensitive_mse",
+        "loss": "costsensitive_mse (weighted class-index MSE, weight=midpoint/mean)",
         "midpoints": midpoints,
         "length_stats": {
             "min": int(train_lengths.min()),
