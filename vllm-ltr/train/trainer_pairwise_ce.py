@@ -205,7 +205,7 @@ def run():
                 ce_loss = F.cross_entropy(logits, labels_flat)
 
                 p = logits.softmax(dim=-1)
-                expected = (p @ class_indices.to(p.dtype))
+                expected = (p @ class_indices.to(p.dtype)).float()  # float32 for stable margin comparison
                 pair_loss = pairwise_ranking_loss(expected, labels_flat, args.pairwise_margin)
 
                 loss = ce_loss + args.pairwise_lambda * pair_loss
@@ -245,7 +245,7 @@ def run():
                 labels_flat = labels.view(-1)
                 ce_loss = F.cross_entropy(logits, labels_flat)
                 p = logits.softmax(dim=-1)
-                expected = (p @ class_indices.to(p.dtype))
+                expected = (p @ class_indices.to(p.dtype)).float()
                 pair_loss = pairwise_ranking_loss(expected, labels_flat, args.pairwise_margin)
                 test_loss_total += (ce_loss + args.pairwise_lambda * pair_loss).item()
 
