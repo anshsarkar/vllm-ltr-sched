@@ -195,7 +195,9 @@ def run():
                 mp = midpoints_tensor.to(p.dtype)
                 pred_tokens = p @ mp          # expected token count
                 true_tokens = mp[labels.view(-1)]  # midpoint of true class
-                loss = F.mse_loss(pred_tokens, true_tokens)
+                # Compute MSE in float32 to avoid overflow:
+                # (4431-9)^2 ≈ 19.5M exceeds float16 max (65504)
+                loss = F.mse_loss(pred_tokens.float(), true_tokens.float())
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -230,7 +232,7 @@ def run():
                 mp = midpoints_tensor.to(p.dtype)
                 pred_tokens = p @ mp
                 true_tokens = mp[labels.view(-1)]
-                test_loss_total += F.mse_loss(pred_tokens, true_tokens).item()
+                test_loss_total += F.mse_loss(pred_tokens.float(), true_tokens.float()).item()
 
                 predicted_scores = outputs.argmax(dim=-1).tolist()
 
