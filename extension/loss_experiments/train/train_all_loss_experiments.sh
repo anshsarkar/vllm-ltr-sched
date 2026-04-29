@@ -50,7 +50,7 @@ python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.
     --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-b4-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 2 \
     2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_ce.log"
 
 echo "=== [2/8] Training cost-sensitive CE — ShareGPT ==="
@@ -60,7 +60,7 @@ python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.
     --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-b4-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 2 \
     2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_ce.log"
 
 # ──────────────────────────────────────────────
@@ -98,7 +98,7 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-lmsys-pctl10-coral-b4-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 3 \
     2>&1 | tee "$LOG_DIR/train_lmsys_coral.log"
 
 echo "=== [6/8] Training CORAL ordinal — ShareGPT ==="
@@ -108,31 +108,31 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-sharegpt-pctl10-coral-b4-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 2 \
     2>&1 | tee "$LOG_DIR/train_sharegpt_coral.log"
 
 # ──────────────────────────────────────────────
 # Experiment 3: Direct Token Regression
 # ──────────────────────────────────────────────
-echo "=== [7/8] Training regression — LMSYS ==="
-python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
-    --file "$LMSYS_FILE" \
-    --job-dir MODEL \
-    --run-id opt-125m-llama3-8b-lmsys-pctl10-regression-b4-ext \
-    --batch-size 4 \
-    --num-classes 10 \
-    --epoch 5 \
-    2>&1 | tee "$LOG_DIR/train_lmsys_regression.log"
+# echo "=== [7/8] Training regression — LMSYS ==="
+# python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
+#     --file "$LMSYS_FILE" \
+#     --job-dir MODEL \
+#     --run-id opt-125m-llama3-8b-lmsys-pctl10-regression-b4-ext \
+#     --batch-size 4 \
+#     --num-classes 10 \
+#     --epoch 5 \
+#     2>&1 | tee "$LOG_DIR/train_lmsys_regression.log"
 
-echo "=== [8/8] Training regression — ShareGPT ==="
-python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
-    --file "$SHAREGPT_FILE" \
-    --job-dir MODEL \
-    --run-id opt-125m-llama3-8b-sharegpt-pctl10-regression-b4-ext \
-    --batch-size 4 \
-    --num-classes 10 \
-    --epoch 5 \
-    2>&1 | tee "$LOG_DIR/train_sharegpt_regression.log"
+# echo "=== [8/8] Training regression — ShareGPT ==="
+# python trainer_regression.py --config configs/config_prefill_opt_classify.txt \
+#     --file "$SHAREGPT_FILE" \
+#     --job-dir MODEL \
+#     --run-id opt-125m-llama3-8b-sharegpt-pctl10-regression-b4-ext \
+#     --batch-size 4 \
+#     --num-classes 10 \
+#     --epoch 5 \
+#     2>&1 | tee "$LOG_DIR/train_sharegpt_regression.log"
 
 echo ""
 echo "All 3 loss experiments trained (8 runs total). Logs in: $LOG_DIR"
