@@ -149,6 +149,10 @@ def run():
     print(f"Class midpoints (tokens): {[f'{m:.0f}' for m in midpoints]}")
     midpoints_tensor = torch.tensor(midpoints, dtype=torch.float32, device='cuda')
     print(f"Midpoint range: {midpoints_tensor.min().item():.0f} - {midpoints_tensor.max().item():.0f} tokens")
+    # Normalize midpoints to [0, 1] so loss/gradient scale matches baseline
+    # class-index MSE. Relative weighting is preserved: long-end errors
+    # still dominate proportionally to token displacement.
+    midpoints_tensor = midpoints_tensor / midpoints_tensor.max()
 
     config.model.num_labels = actual_num_classes
     print("num_labels:", config.model.num_labels)
