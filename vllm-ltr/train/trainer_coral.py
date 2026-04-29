@@ -234,6 +234,8 @@ def run():
 
     # Save with num_thresholds (K-1) as the head size
     config.model.num_labels = num_thresholds
+    # CORAL uses sigmoid inference, not argmax
+    config.model.mtype = "coral"
 
     create_output_dirs(paths.output_dir)
 

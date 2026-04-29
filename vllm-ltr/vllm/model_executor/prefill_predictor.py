@@ -49,6 +49,8 @@ class PredModel(nn.Module):
             ts += t2 - t1
             if self.mtype == "class":
                 ret.append( self.model(input_ids, attention_mask).argmax(dim=-1) )
+            elif self.mtype == "coral":
+                ret.append( (self.model(input_ids, attention_mask).logits.sigmoid() > 0.5).sum(dim=-1) )
             elif self.mtype == "rank":
                 ret.append( self.activation(self.model(input_ids, attention_mask).logits) )
         return ret
@@ -75,6 +77,8 @@ class PredModel(nn.Module):
 
         #return prediction
         if self.mtype == "class":
+            return self.model(input_ids, attention_mask).logits
+        elif self.mtype == "coral":
             return self.model(input_ids, attention_mask).logits
         elif self.mtype == "rank":
             return self.activation(self.model(input_ids, attention_mask).logits)
