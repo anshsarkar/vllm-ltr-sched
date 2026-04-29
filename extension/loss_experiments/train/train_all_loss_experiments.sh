@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 #
-# Train all 4 B4 loss experiment variants on both datasets (8 runs total).
+# Train B4 loss experiment variants on both datasets.
 #
+# Active (3 experiments, 6 runs):
 # Experiment 1a: Cost-sensitive CE + expected cost (trainer_costsensitive_ce.py)
-# Experiment 1b: Cost-sensitive MSE in token space (trainer_costsensitive_mse.py)
 # Experiment 2:  CORAL ordinal regression (trainer_coral.py)
+# Experiment 4:  Ranking listMLE — authors' model retrained locally (trainer.py)
+#
+# Skipped (no improvement in initial runs):
+# Experiment 1b: Cost-sensitive MSE (trainer_costsensitive_mse.py)
 # Experiment 3:  Direct token regression (trainer_regression.py)
 #
 # Same backbone (OPT-125m), same percentile boundaries (10 classes),
@@ -133,6 +137,8 @@ python trainer_coral.py --config configs/config_prefill_opt_classify.txt \
 #     --num-classes 10 \
 #     --epoch 5 \
 #     2>&1 | tee "$LOG_DIR/train_sharegpt_regression.log"
+
+echo "Skipping regression runs, initial runs did not show improvement."
 
 # ──────────────────────────────────────────────
 # Experiment 4: Ranking (listMLE) — authors' model retrained locally
