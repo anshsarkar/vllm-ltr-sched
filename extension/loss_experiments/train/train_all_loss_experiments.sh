@@ -43,48 +43,50 @@ SHAREGPT_FILE="jsonfiles/llama3-8b-sharegpt-train-t1-s0-8192.jsonl"
 # ──────────────────────────────────────────────
 # Experiment 1: Cost-Sensitive CE
 # ──────────────────────────────────────────────
-# echo "=== [1/8] Training cost-sensitive CE — LMSYS ==="
-# python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
-#     --file "$LMSYS_FILE" \
-#     --job-dir MODEL \
-#     --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-b4-ext \
-#     --batch-size 4 \
-#     --num-classes 10 \
-#     --epoch 5 \
-#     2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_ce.log"
+echo "=== [1/8] Training cost-sensitive CE — LMSYS ==="
+python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
+    --file "$LMSYS_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-b4-ext \
+    --batch-size 4 \
+    --num-classes 10 \
+    --epoch 5 \
+    2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_ce.log"
 
-# echo "=== [2/8] Training cost-sensitive CE — ShareGPT ==="
-# python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
-#     --file "$SHAREGPT_FILE" \
-#     --job-dir MODEL \
-#     --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-b4-ext \
-#     --batch-size 4 \
-#     --num-classes 10 \
-#     --epoch 5 \
-#     2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_ce.log"
+echo "=== [2/8] Training cost-sensitive CE — ShareGPT ==="
+python trainer_costsensitive_ce.py --config configs/config_prefill_opt_classify.txt \
+    --file "$SHAREGPT_FILE" \
+    --job-dir MODEL \
+    --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-b4-ext \
+    --batch-size 4 \
+    --num-classes 10 \
+    --epoch 5 \
+    2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_ce.log"
 
 # ──────────────────────────────────────────────
 # Experiment 1b: Cost-Sensitive MSE (token-space)
 # ──────────────────────────────────────────────
-echo "=== [3/8] Training cost-sensitive MSE — LMSYS ==="
-python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
-    --file "$LMSYS_FILE" \
-    --job-dir MODEL \
-    --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-mse-b4-ext \
-    --batch-size 4 \
-    --num-classes 10 \
-    --epoch 5 \
-    2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_mse.log"
+# echo "=== [3/8] Training cost-sensitive MSE — LMSYS ==="
+# python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
+#     --file "$LMSYS_FILE" \
+#     --job-dir MODEL \
+#     --run-id opt-125m-llama3-8b-lmsys-pctl10-costsensitive-mse-b4-ext \
+#     --batch-size 4 \
+#     --num-classes 10 \
+#     --epoch 5 \
+#     2>&1 | tee "$LOG_DIR/train_lmsys_costsensitive_mse.log"
 
-echo "=== [4/8] Training cost-sensitive MSE — ShareGPT ==="
-python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
-    --file "$SHAREGPT_FILE" \
-    --job-dir MODEL \
-    --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-mse-b4-ext \
-    --batch-size 4 \
-    --num-classes 10 \
-    --epoch 5 \
-    2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_mse.log"
+# echo "=== [4/8] Training cost-sensitive MSE — ShareGPT ==="
+# python trainer_costsensitive_mse.py --config configs/config_prefill_opt_classify.txt \
+#     --file "$SHAREGPT_FILE" \
+#     --job-dir MODEL \
+#     --run-id opt-125m-llama3-8b-sharegpt-pctl10-costsensitive-mse-b4-ext \
+#     --batch-size 4 \
+#     --num-classes 10 \
+#     --epoch 5 \
+#     2>&1 | tee "$LOG_DIR/train_sharegpt_costsensitive_mse.log"
+
+echo "Skipping cost-sensitive MSE runs, initial runs did not show better performance. Will look into this later."
 
 # ──────────────────────────────────────────────
 # Experiment 2: CORAL Ordinal Regression
