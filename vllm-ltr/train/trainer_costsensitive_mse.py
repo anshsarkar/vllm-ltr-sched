@@ -187,17 +187,13 @@ def run():
                     f"Label {labels.max().item()} >= num_labels {predictor.model.num_labels}"
                 logits = outputs.view(-1, predictor.model.num_labels)
 
-                # Token-space MSE: same as class-index MSE but with
-                # midpoints instead of arange. A 1-class error at the
-                # long end (~2400 tokens) is penalized ~100x more than
-                # at the short end (~8 tokens).
-                p = logits.softmax(dim=-1)
-                mp = midpoints_tensor.to(p.dtype)
-                pred_tokens = p @ mp          # expected token count
-                true_tokens = mp[labels.view(-1)]  # midpoint of true class
-                # Compute MSE in float32 to avoid overflow:
-                # (4431-9)^2 ≈ 19.5M exceeds float16 max (65504)
-                loss = F.mse_loss(pred_tokens.float(), true_tokens.float())
+                # Exit autocast for loss: token-space MSE gradients
+                # overflow float16 (midpoint * error ≈ 4431 * 4422 > 65504)
+                with torch.cuda.amp.autocast(enabled=False):
+                    p = logits.float().softmax(dim=-1)
+                    pred_tokens = p @ midpoints_tensor          # both float32
+                    true_tokens = midpoints_tensor[labels.view(-1)]
+                    loss = F.mse_loss(pred_tokens, true_tokens)
 
             if args.print_loss:
                 print("loss: ", loss )
@@ -228,11 +224,11 @@ def run():
 
                 labels = labels.to("cuda")
                 logits = outputs.view(-1, predictor.model.num_labels)
-                p = logits.softmax(dim=-1)
-                mp = midpoints_tensor.to(p.dtype)
-                pred_tokens = p @ mp
-                true_tokens = mp[labels.view(-1)]
-                test_loss_total += F.mse_loss(pred_tokens.float(), true_tokens.float()).item()
+                with torch.cuda.amp.autocast(enabled=False):
+                    p = logits.float().softmax(dim=-1)
+                    pred_tokens = p @ midpoints_tensor
+                    true_tokens = midpoints_tensor[labels.view(-1)]
+                    test_loss_total += F.mse_loss(pred_tokens, true_tokens).item()
 
                 predicted_scores = outputs.argmax(dim=-1).tolist()
 
