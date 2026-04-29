@@ -37,7 +37,7 @@ python trainer_focal_ce.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-lmsys-pctl10-focal-b4r2-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 10 \
     --gamma 2.0 \
     2>&1 | tee "$LOG_DIR/train_lmsys_focal_ce.log"
 
@@ -48,7 +48,7 @@ python trainer_focal_ce.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-sharegpt-pctl10-focal-b4r2-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 10 \
     --gamma 2.0 \
     2>&1 | tee "$LOG_DIR/train_sharegpt_focal_ce.log"
 
@@ -62,7 +62,7 @@ python trainer_pairwise_ce.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-lmsys-pctl10-pairwise-b4r2-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 10 \
     --pairwise-lambda 1.0 \
     --pairwise-margin 0.5 \
     2>&1 | tee "$LOG_DIR/train_lmsys_pairwise_ce.log"
@@ -74,7 +74,7 @@ python trainer_pairwise_ce.py --config configs/config_prefill_opt_classify.txt \
     --run-id opt-125m-llama3-8b-sharegpt-pctl10-pairwise-b4r2-ext \
     --batch-size 4 \
     --num-classes 10 \
-    --epoch 5 \
+    --epoch 10 \
     --pairwise-lambda 1.0 \
     --pairwise-margin 0.5 \
     2>&1 | tee "$LOG_DIR/train_sharegpt_pairwise_ce.log"
