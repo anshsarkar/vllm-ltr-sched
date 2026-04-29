@@ -197,7 +197,7 @@ def run():
                 # proportionally to token-space displacement.
                 ce_loss = F.cross_entropy(logits, labels.view(-1))
                 p = logits.softmax(dim=-1)
-                cost_vectors = cost_matrix[labels.view(-1)]  # [batch, num_classes]
+                cost_vectors = cost_matrix[labels.view(-1)].to(p.dtype)  # [batch, num_classes]
                 expected_cost = (p * cost_vectors).sum(dim=-1).mean()
                 loss = ce_loss + expected_cost
 
@@ -232,7 +232,7 @@ def run():
                 logits = outputs.view(-1, predictor.model.num_labels)
                 ce_loss = F.cross_entropy(logits, labels.view(-1))
                 p = logits.softmax(dim=-1)
-                cost_vectors = cost_matrix[labels.view(-1)]
+                cost_vectors = cost_matrix[labels.view(-1)].to(p.dtype)
                 expected_cost = (p * cost_vectors).sum(dim=-1).mean()
                 test_loss_total += (ce_loss + expected_cost).item()
 

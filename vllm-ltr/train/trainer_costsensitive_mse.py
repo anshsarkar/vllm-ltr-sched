@@ -192,8 +192,9 @@ def run():
                 # long end (~2400 tokens) is penalized ~100x more than
                 # at the short end (~8 tokens).
                 p = logits.softmax(dim=-1)
-                pred_tokens = p @ midpoints_tensor          # expected token count
-                true_tokens = midpoints_tensor[labels.view(-1)]  # midpoint of true class
+                mp = midpoints_tensor.to(p.dtype)
+                pred_tokens = p @ mp          # expected token count
+                true_tokens = mp[labels.view(-1)]  # midpoint of true class
                 loss = F.mse_loss(pred_tokens, true_tokens)
 
             if args.print_loss:
@@ -226,8 +227,9 @@ def run():
                 labels = labels.to("cuda")
                 logits = outputs.view(-1, predictor.model.num_labels)
                 p = logits.softmax(dim=-1)
-                pred_tokens = p @ midpoints_tensor
-                true_tokens = midpoints_tensor[labels.view(-1)]
+                mp = midpoints_tensor.to(p.dtype)
+                pred_tokens = p @ mp
+                true_tokens = mp[labels.view(-1)]
                 test_loss_total += F.mse_loss(pred_tokens, true_tokens).item()
 
                 predicted_scores = outputs.argmax(dim=-1).tolist()
