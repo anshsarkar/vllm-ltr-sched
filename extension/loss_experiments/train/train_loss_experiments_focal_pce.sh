@@ -36,8 +36,8 @@ python trainer_focal_ce.py --config configs/config_prefill_opt_classify.txt \
     --job-dir MODEL \
     --run-id opt-125m-llama3-8b-lmsys-pctl10-focal-b4r2-ext \
     --batch-size 4 \
-    --num-classes 1 \
-    --epoch 10 \
+    --num-classes 10 \
+    --epoch 1 \
     --gamma 2.0 \
     2>&1 | tee "$LOG_DIR/train_lmsys_focal_ce.log"
 
