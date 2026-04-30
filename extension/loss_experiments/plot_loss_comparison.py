@@ -20,8 +20,10 @@ SCHEDULERS = {
     "opt_author":   (BASELINE_DIR, "opt-xxx",                    "Ranking (author)"),
     "pctl10_mse":   (BASELINE_DIR, "tpt-pctl10-mse-xxx",        "Pctl10-MSE (baseline)"),
     "opt_ours":     (B4_DIR,       "opt-xxx",                    "Ranking (ours, listMLE)"),
-    "costsens_ce":  (B4_DIR,       "tpt-pctl10-costsensitive-xxx", "Cost-Sensitive CE"),
-    "coral":        (B4_DIR,       "tpt-pctl10-coral-xxx",       "CORAL"),
+    # "costsens_ce":  (B4_DIR,       "tpt-pctl10-costsensitive-xxx", "Cost-Sensitive CE"),
+    # "coral":        (B4_DIR,       "tpt-pctl10-coral-xxx",       "CORAL"),
+    # "focal_ce":     (B4_DIR,       "tpt-pctl10-focal-xxx",       "Focal CE"),
+    # "pairwise_ce":  (B4_DIR,       "tpt-pctl10-pairwise-xxx",    "Pairwise CE"),
 }
 
 DATASETS = ["lmsys", "sharegpt"]
@@ -73,8 +75,10 @@ def plot(results, output_dir):
         "opt_author":  dict(color="#1f77b4", ls="-",  marker="o", lw=2),
         "pctl10_mse":  dict(color="#2ca02c", ls="-",  marker="^", lw=2),
         "opt_ours":    dict(color="#ff7f0e", ls="-",  marker="D", lw=2),
-        "costsens_ce": dict(color="#d62728", ls="-",  marker="v", lw=2),
-        "coral":       dict(color="#9467bd", ls="-",  marker="P", lw=2),
+        # "costsens_ce": dict(color="#d62728", ls="-",  marker="v", lw=2),
+        # "coral":       dict(color="#9467bd", ls="-",  marker="P", lw=2),
+        # "focal_ce":    dict(color="#e377c2", ls="-",  marker="h", lw=2),
+        # "pairwise_ce": dict(color="#17becf", ls="-",  marker="X", lw=2),
     }
 
     for ds in DATASETS:
@@ -92,12 +96,12 @@ def plot(results, output_dir):
 
         ax.set_xlabel("Request Rate (req/s)", fontsize=12)
         ax.set_ylabel("Mean Normalized Latency", fontsize=12)
-        ax.set_title(f"B4 Loss Experiment Comparison — {ds.upper()}", fontsize=14, fontweight="bold")
+        ax.set_title(f"B4 Loss Experiment Comparison v2 — {ds.upper()}", fontsize=14, fontweight="bold")
         ax.legend(loc="upper left", fontsize=9)
         ax.grid(True, alpha=0.3)
         ax.set_xticks([2, 4, 8, 16, 32, 64])
 
-        out_path = os.path.join(output_dir, f"loss_comparison_{ds}.pdf")
+        out_path = os.path.join(output_dir, f"loss_comparison_v3_{ds}.pdf")
         plt.tight_layout()
         plt.savefig(out_path, dpi=150, bbox_inches="tight")
         plt.close()
