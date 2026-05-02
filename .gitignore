@@ -4,8 +4,9 @@
 # Logs
 *.log
 
-# AI memory / scratch (not pushed)
+
 /docs/
+/presentation
 
 # Docker env with secrets
 docker/.env
