@@ -50,7 +50,7 @@ DASH_STYLE = (4, 3)
 FONT_TITLE = 16
 FONT_LABEL = 15
 FONT_TICK = 13
-FONT_LEGEND = 13
+FONT_LEGEND = 15
 
 
 RUNS = ["", "_test3", "_test4"]  # "" = original run
@@ -187,7 +187,7 @@ def build_legend_handles():
                         label="Ours"))
     row1.append(Line2D([0], [0], color="black", linewidth=3.0, linestyle=(0, (3, 2)),
                         label="Authors'"))
-    for sched in ["fcfs", "mlfq", "srtf-PO-X", "opt-xxx"]:
+    for sched in ["fcfs", "mlfq", "srtf-PO-X", "opt-xxx", "tpt-class10-xxx"]:
         style = AUTHOR_STYLE[sched]
         row1.append(Line2D([0], [0], color=style["color"], marker=style["marker"],
                             markersize=MARKER_SIZE, linewidth=LINE_WIDTH,
@@ -195,7 +195,6 @@ def build_legend_handles():
 
     row2 = []
     classification_order = [
-        ("tpt-class10-xxx", AUTHOR_STYLE),
         ("tpt-class82-xxx", NEW_STYLE),
         ("tpt-width10-xxx", NEW_STYLE),
         ("tpt-pctl10-xxx", NEW_STYLE),
