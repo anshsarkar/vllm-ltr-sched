@@ -50,11 +50,10 @@ def short_version(v):
 
 
 def minor_distance(v1, v2):
-    """Count how many minor versions apart two versions are."""
+    """Monotonic distance: major*100 + minor, so crossing a major boundary
+    always exceeds any within-major drift."""
     p1, p2 = parse_version(v1), parse_version(v2)
-    if p1[0] != p2[0]:
-        return abs(p2[0] - p1[0]) * 10 + abs(p2[1] - p1[1])
-    return abs(p2[1] - p1[1])
+    return (p2[0] - p1[0]) * 100 + (p2[1] - p1[1])
 
 
 def load_data():
@@ -94,21 +93,28 @@ def main():
         drift_grid.append(row_drift)
 
     drift_arr = np.array(drift_grid, dtype=float)
-    # Normalize each row independently so colors are comparable
-    max_per_row = drift_arr.max(axis=1, keepdims=True)
-    max_per_row[max_per_row == 0] = 1
-    norm_drift = drift_arr / max_per_row
+    # Global normalization so colors are comparable across packages
+    global_max = drift_arr.max()
+    if global_max == 0:
+        global_max = 1
+    norm_drift = drift_arr / global_max
+
+    # --- v2 params (revert to these if needed) ---
+    # Per-row normalization:
+    #   max_per_row = drift_arr.max(axis=1, keepdims=True)
+    #   max_per_row[max_per_row == 0] = 1
+    #   norm_drift = drift_arr / max_per_row
+    # figsize=(6.5, 2.8), cell fontsize=11, xtick fontsize=10,
+    # ytick fontsize=11, white threshold=0.55
 
     fig, ax = plt.subplots(figsize=(6.5, 2.4))
 
-    # Draw heatmap
-    cmap = plt.cm.Oranges
+    cmap = plt.cm.YlOrRd
     ax.imshow(norm_drift, cmap=cmap, aspect="auto", vmin=0, vmax=1)
 
-    # Add version text in each cell
     for i in range(n_pkg):
         for j in range(n_dates):
-            color = "white" if norm_drift[i, j] > 0.6 else "black"
+            color = "white" if norm_drift[i, j] > 0.55 else "black"
             fontweight = "bold" if j == 0 else "normal"
             ax.text(j, i, text_grid[i][j], ha="center", va="center",
                     fontsize=9, color=color, fontweight=fontweight)
@@ -126,7 +132,7 @@ def main():
         spine.set_visible(False)
 
     plt.tight_layout()
-    out_path = os.path.join(OUTPUT_DIR, "version_drift.pdf")
+    out_path = os.path.join(OUTPUT_DIR, "version_drift_v3.pdf")
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close()
     print(f"Saved: {out_path}")
