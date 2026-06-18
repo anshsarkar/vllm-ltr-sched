@@ -241,9 +241,9 @@ def make_figure(dataset):
         handletextpad=0.4, handlelength=3.0, borderpad=0,
     )
     fig.legend(handles=row1, loc="lower center",
-               bbox_to_anchor=(0.5, 1.10), ncol=len(row1), **leg_kw)
+               bbox_to_anchor=(0.5, 1.08), ncol=len(row1), **leg_kw)
     fig.legend(handles=row2, loc="lower center",
-               bbox_to_anchor=(0.5, 1.02), ncol=len(row2), **leg_kw)
+               bbox_to_anchor=(0.5, 1.0), ncol=len(row2), **leg_kw)
 
     plt.tight_layout(w_pad=2.0)
     out_path = os.path.join(OUTPUT_DIR, f"paper_figure_{dataset}_v2.pdf")
