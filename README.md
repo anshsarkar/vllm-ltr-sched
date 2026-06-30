@@ -1,101 +1,95 @@
 # vllm-ltr-sched
 
-A reproducibility and extension study of [Efficient LLM Scheduling by Learning to Rank](https://arxiv.org/abs/2408.15792) (Fu et al., 2024). This repository contains the code, data, and analysis for our ACM REP 2026 paper, which consumes the authors' artifact following Wonsil et al.'s five-stage reproducibility taxonomy.
+This repository accompanies our ACM REP 2026 paper, *"It Works, But Why? A Case Study of Artifact Consumption in Machine Learning Systems"*. We apply Wonsil et al.'s five-stage reproducibility taxonomy to the artifact for [Efficient LLM Scheduling by Learning to Rank](https://arxiv.org/abs/2408.15792) (Fu et al., 2024), going beyond verifying reported results to critically examine the underlying design decisions.
 
-> **Note:** The citation at the bottom of this README refers to the **original work by Fu et al.**, not this reproducibility study. Our study builds on their artifact and codebase.
+Our key finding is that the reported advantage of ranking over classification for LLM request scheduling is largely attributable to the classifier design (fixed-width bucketing over a skewed distribution) rather than a fundamental limitation of classification. By training classifiers with percentile-balanced buckets and ordinal-aware loss functions, we close most of the performance gap with ranking.
+
+The repository contains:
+- Our reproduction of the original benchmark results across 9 scheduling policies on two datasets (LMSYS-Chat-1M and ShareGPT), with 3 independent trials
+- Training code and results for alternative classifier designs that we developed during the Comprehend stage
+- All pre-computed metrics, figures, and analysis scripts used in the paper
+- The authors' forked vLLM 0.4.1 codebase with LTR scheduling
 
 ## Repository Structure
 
 ```
 vllm-ltr-sched/
-├── vllm-ltr/                          # Authors' forked codebase (vLLM 0.4.1 + LTR scheduling)
-│   ├── train/                         # Training code for predictors
-│   │   ├── trainer.py                 # Uniform-width classifier trainer
-│   │   └── trainer_percentile.py      # Percentile-balanced classifier trainer
-│   └── benchmarks/                    # Serving benchmark harness
-├── scripts/                           # Setup and benchmark runner scripts
-│   ├── setup_instance.sh              # One-time instance setup (NVIDIA toolkit, etc.)
-│   ├── setup_conda_env.sh             # Conda environment setup
-│   ├── download_data.sh               # Download datasets and pre-trained models
-├── rep/final_results/                 # All results from the reproducibility study
+├── vllm-ltr/                              # Authors' forked vLLM 0.4.1 + LTR scheduling
+│   ├── train/                             # Predictor training code
+│   │   ├── trainer.py                     # * Uniform-width classifier trainer
+│   │   └── trainer_percentile.py          # * Percentile-balanced classifier trainer
+│   ├── benchmarks/                        # Serving benchmark harness
+│   └── vllm/core/scheduler.py             # * Scheduling policy entry point
+├── scripts/                               # Environment and data setup
+│   ├── setup_instance.sh                  # One-time NVIDIA toolkit setup
+│   ├── setup_conda_env.sh                 # Conda environment setup
+│   └── download_data.sh                   # Download datasets and models from HuggingFace
+├── rep/final_results/                     # Our study: training, benchmarks, and analysis
 │   ├── training/
-│   │   ├── scripts/                   # Training scripts (train_all.sh, train_pctl10_mse.sh)
-│   │   ├── logs/                      # Raw training logs per model/dataset
-│   │   └── metrics/                   # training_metrics.csv (parsed from logs)
+│   │   ├── scripts/                       # * train_all.sh, train_pctl10_mse.sh
+│   │   ├── logs/                          # Raw training logs
+│   │   └── metrics/                       # training_metrics.csv
 │   ├── benchmarks/
-│   │   ├── scripts/                   # Benchmark runner scripts for all schedulers
-│   │   ├── logs/                      # Server and benchmark logs
-│   │   └── results/                   # Raw JSON results and analysis outputs
-│   │       ├── lmsys/                 # Run 1: LMSYS-Chat benchmark JSONs
-│   │       ├── lmsys_test3/           # Run 2
-│   │       ├── lmsys_test4/           # Run 3
-│   │       ├── sharegpt/              # Run 1: ShareGPT benchmark JSONs
-│   │       ├── sharegpt_test3/        # Run 2
-│   │       ├── sharegpt_test4/        # Run 3
-│   │       ├── raw_authors_data/      # Authors' original benchmark data
-│   │       └── plots_for_paper/       # Generated figures and histograms
-│   └── analysis/                      # Analysis and plotting scripts
-│       ├── plot_benchmark_results.py  # Extract metrics from JSON to CSV
-│       ├── parse_training_logs.py     # Parse training logs to CSV
-│       ├── extract_class_distributions.py  # Extract class distributions from models
-│       └── generate_distribution_histograms.py  # Generate inline histogram PDFs
-└── data/                              # Datasets and pre-trained models (not in git)
+│   │   ├── scripts/                       # * run_bench_all_v3.sh (main benchmark runner)
+│   │   └── results/                       # Per-run .pt files, metrics CSVs, and figures
+│   │       ├── {lmsys,sharegpt}[_test3|_test4]/  # Raw benchmark data (3 runs per dataset)
+│   │       ├── metrics_*.csv              # Extracted per-scheduler latency metrics
+│   │       ├── authors_metrics_*.csv      # Authors' reported values
+│   │       └── plots_for_paper/           # * Generated figures, histograms, prediction quality
+│   └── analysis/                          # Analysis and plotting scripts
+│       ├── plot_benchmark_results.py      # * .pt benchmark data → metrics CSV
+│       ├── plot_version_drift.py          # * Version drift heatmap
+│       └── version_drift_raw.csv          # Raw version drift data
+└── data/                                  # Datasets and pretrained models (not in git, see download_data.sh)
 ```
 
-## Pre-computed Results
+## Recreating Paper Figures
 
-All results from our study are committed to the repository. You do not need to rerun anything to inspect them.
+All raw data (benchmark `.pt` files, training logs, version drift data) and pre-computed metrics CSVs are committed to the repository. You can regenerate everything without a GPU. Only `matplotlib`, `numpy`, `pandas`, and `scipy` are needed.
 
-**Benchmark metrics (CSV):**
-- `rep/final_results/benchmarks/results/metrics_lmsys.csv` (Run 1)
-- `rep/final_results/benchmarks/results/metrics_lmsys_test3.csv` (Run 2)
-- `rep/final_results/benchmarks/results/metrics_lmsys_test4.csv` (Run 3)
-- Same pattern for `sharegpt` variants
-- `rep/final_results/benchmarks/results/authors_metrics_lmsys.csv` (authors' reported values)
-- `rep/final_results/benchmarks/results/authors_metrics_sharegpt.csv`
+### Regenerating metrics CSVs from raw data
 
-**Training metrics:**
-- `rep/final_results/training/metrics/training_metrics.csv` (loss, Kendall's tau, accuracy per epoch)
+The metrics CSVs are already committed, but you can regenerate them from the raw benchmark and training data:
 
-**Class distributions:**
-- `rep/final_results/analysis/class_distributions.csv` (per-bucket sample counts for each classifier)
+```bash
+# Benchmark metrics: extract mean normalized latency per scheduler/rate from raw .pt files
+# Repeat for each run and dataset (lmsys, lmsys_test3, lmsys_test4, sharegpt, sharegpt_test3, sharegpt_test4)
+python rep/final_results/analysis/plot_benchmark_results.py \
+    rep/final_results/benchmarks/results/lmsys \
+    -o rep/final_results/benchmarks/results/metrics_lmsys.csv --no-plot
 
-**Prediction quality:**
-- `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_summary.csv`
-- `rep/final_results/benchmarks/results/plots_for_paper/prediction_quality_per_rate.csv`
+# Training metrics: parse raw training logs into CSV
+python rep/final_results/analysis/parse_training_logs.py
+# Output: rep/final_results/training/metrics/training_metrics.csv
+```
 
-**Version drift:**
-- `rep/final_results/analysis/version_drift_raw.csv` (resolved versions for 20 packages across 5 PyPI snapshot dates)
-- `rep/final_results/benchmarks/results/plots_for_paper/version_drift.pdf` (heatmap figure for Appendix B)
+### Generating figures
 
-Versions were collected using [`pypi-timemachine`](https://github.com/astrofrog/pypi-timemachine), which serves a local PyPI proxy frozen to a given date. We resolved the authors' unpinned dependency specifications (`requirements-common.txt`, `requirements-cuda.txt`) against PyPI snapshots at each date to determine what versions pip would install.
+```bash
+# Main comparison figures (Figures 1 and 2: authors vs. ours vs. classifier variants)
+python rep/final_results/benchmarks/results/plot_paper_figures.py
 
-**Paper figures:**
-- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_lmsys.pdf` (3-subplot figure with SE bands in subplot (b))
-- `rep/final_results/benchmarks/results/plots_for_paper/paper_figure_sharegpt.pdf` (3-subplot figure with SE bands in subplot (b))
-- `rep/final_results/benchmarks/results/plots_for_paper/version_drift.pdf` (dependency version drift heatmap, Appendix B)
-- `rep/final_results/benchmarks/results/plots_for_paper/histograms/` (inline distribution histograms)
+# Confidence interval plots (mean +/- 95% CI across 3 runs)
+python rep/final_results/benchmarks/results/plot_confidence_intervals.py
 
-**Key scripts:**
+# Prediction quality metrics (Kendall's tau, accuracy)
+python rep/final_results/benchmarks/results/compute_prediction_quality.py
 
-| Script | Description |
-|--------|-------------|
-| `scripts/setup_instance.sh` | One-time machine setup (NVIDIA toolkit, nvtop) |
-| `scripts/setup_conda_env.sh` | Creates `vllm-ltr` conda env with Python 3.10 and all dependencies |
-| `scripts/download_data.sh` | Downloads datasets and authors' pre-trained model checkpoints from HuggingFace |
-| `rep/final_results/training/scripts/train_all.sh` | Trains class82, pctl10, and width10 classifiers on both datasets |
-| `rep/final_results/training/scripts/train_pctl10_mse.sh` | Trains the percentile MSE variant |
-| `rep/final_results/benchmarks/scripts/run_bench_all_v3.sh` | Runs all 9 schedulers on both datasets (the main benchmark script) |
-| `rep/final_results/analysis/parse_training_logs.py` | Parses raw training logs into `training_metrics.csv` |
-| `rep/final_results/analysis/plot_benchmark_results.py` | Extracts mean normalized latency per scheduler/rate from raw benchmark JSONs to CSV |
-| `rep/final_results/analysis/extract_class_distributions.py` | Extracts class distributions from training data for each classifier |
-| `rep/final_results/analysis/generate_distribution_histograms.py` | Generates inline histogram PDFs for the paper table |
-| `rep/final_results/benchmarks/results/plot_paper_figures.py` | Generates the main 3-subplot comparison figures (authors vs. ours vs. variants) |
-| `rep/final_results/benchmarks/results/plot_confidence_intervals.py` | Generates confidence interval plots (mean with 95% CI across 3 runs) |
-| `rep/final_results/benchmarks/results/compute_prediction_quality.py` | Computes Kendall's tau, accuracy, and other prediction quality metrics |
-| `rep/final_results/analysis/plot_version_drift.py` | Generates the version drift heatmap from `version_drift_raw.csv` |
+# Class distribution histograms (inline figures in Table 1)
+# Uses the committed class_distributions.csv (to regenerate this CSV from raw data, see "Reproducing from Scratch")
+python rep/final_results/analysis/generate_distribution_histograms.py
 
-## Quick Start (Conda)
+# Version drift heatmap (Appendix B)
+python rep/final_results/analysis/plot_version_drift.py
+```
+
+All outputs go to `rep/final_results/benchmarks/results/plots_for_paper/`.
+
+## Reproducing from Scratch
+
+If you want to rerun the full pipeline (training, benchmarks, and analysis), follow the steps below. All commands assume you are in the repo root with the `vllm-ltr` conda environment activated.
+
+### Environment Setup
 
 **Prerequisites:** NVIDIA GPU with CUDA support, conda.
 
@@ -114,10 +108,7 @@ bash scripts/setup_conda_env.sh
 # 4. Download datasets and pre-trained models
 conda activate vllm-ltr
 bash scripts/download_data.sh
-
-## Reproducing from Scratch
-
-The full pipeline from training through figure generation. All commands assume you are in the repo root with the `vllm-ltr` conda environment activated.
+```
 
 ### Step 1: Train classifier variants
 
@@ -159,14 +150,13 @@ bash rep/final_results/benchmarks/scripts/run_bench_all_v3.sh
 bash rep/final_results/benchmarks/scripts/run_bench_all_v3.sh
 ```
 
-Raw JSON results are saved per scheduler and request rate in `rep/final_results/benchmarks/results/<dataset>/`.
+Raw `.pt` results are saved per scheduler and request rate in `rep/final_results/benchmarks/results/<dataset>/`.
 
 ### Step 4: Generate metrics CSVs
 
 ```bash
-# Extract mean normalized latency per scheduler/rate from raw JSONs
-
-# Run 1
+# Extract mean normalized latency per scheduler/rate from raw .pt files
+# Repeat for each run and dataset:
 python rep/final_results/analysis/plot_benchmark_results.py \
     rep/final_results/benchmarks/results/lmsys \
     -o rep/final_results/benchmarks/results/metrics_lmsys.csv --no-plot
@@ -175,43 +165,25 @@ python rep/final_results/analysis/plot_benchmark_results.py \
     rep/final_results/benchmarks/results/sharegpt \
     -o rep/final_results/benchmarks/results/metrics_sharegpt.csv --no-plot
 
-# Run 2
-python rep/final_results/analysis/plot_benchmark_results.py \
-    rep/final_results/benchmarks/results/lmsys_test3 \
-    -o rep/final_results/benchmarks/results/metrics_lmsys_test3.csv --no-plot
-
-python rep/final_results/analysis/plot_benchmark_results.py \
-    rep/final_results/benchmarks/results/sharegpt_test3 \
-    -o rep/final_results/benchmarks/results/metrics_sharegpt_test3.csv --no-plot
-
-# Run 3
-python rep/final_results/analysis/plot_benchmark_results.py \
-    rep/final_results/benchmarks/results/lmsys_test4 \
-    -o rep/final_results/benchmarks/results/metrics_lmsys_test4.csv --no-plot
-
-python rep/final_results/analysis/plot_benchmark_results.py \
-    rep/final_results/benchmarks/results/sharegpt_test4 \
-    -o rep/final_results/benchmarks/results/metrics_sharegpt_test4.csv --no-plot
+# Same for _test3 and _test4 variants
 ```
 
-### Step 5: Generate paper figures
+### Step 5: Generate class distributions
+
+This requires the JSONL training data downloaded in the environment setup step.
 
 ```bash
-# Main 3-subplot comparison figures (authors vs. ours vs. variants)
-python rep/final_results/benchmarks/results/plot_paper_figures.py
-
-# Confidence interval plots (mean +/- 95% CI across 3 runs)
-python rep/final_results/benchmarks/results/plot_confidence_intervals.py
-
-# Prediction quality metrics (Kendall's tau, accuracy)
-python rep/final_results/benchmarks/results/compute_prediction_quality.py
-
-# Class distribution histograms for the table
-python rep/final_results/analysis/extract_class_distributions.py
-python rep/final_results/analysis/generate_distribution_histograms.py
+cd vllm-ltr/train
+python ../../rep/final_results/analysis/extract_class_distributions.py \
+    --lmsys-dataset jsonfiles/lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c20000:30000-rFalse.jsonl \
+    --sharegpt-dataset jsonfiles/llama3-8b-sharegpt-train-t1-s0-8192.jsonl \
+    --output ../../rep/final_results/analysis/class_distributions.csv
+cd ../..
 ```
 
-All outputs go to `rep/final_results/benchmarks/results/plots_for_paper/`.
+### Step 6: Generate paper figures
+
+See the [Recreating Paper Figures](#recreating-paper-figures) section above. All plotting scripts work on the metrics CSVs and class distributions generated in the previous steps.
 
 ## Training a New Predictor
 
@@ -226,7 +198,19 @@ Both trainers save checkpoints and a `usage_config.json` to `vllm-ltr/train/MODE
 
 ## Citations
 
-This repository is a reproducibility study. The citation below is for the **original work** by Fu et al., whose artifact we consume and extend.
+If you use this repository, please cite our paper:
+
+```bibtex
+@inproceedings{sarkar2026itworks,
+  title={It Works, But Why? A Case Study of Artifact Consumption in Machine Learning Systems},
+  author={Sarkar, Ansh and Fund, Fraida},
+  booktitle={Proceedings of the ACM Conference on Reproducibility and Replicability (ACM REP '26)},
+  year={2026},
+  doi={10.1145/3820002.3828597}
+}
+```
+
+The original work whose artifact we consume and extend:
 
 ```bibtex
 @article{fu2024efficient,
