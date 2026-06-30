@@ -8,7 +8,7 @@ The repository contains:
 - Our reproduction of the original benchmark results across 9 scheduling policies on two datasets (LMSYS-Chat-1M and ShareGPT), with 3 independent trials
 - Training code and results for alternative classifier designs that we developed during the Comprehend stage
 - All pre-computed metrics, figures, and analysis scripts used in the paper
-- The authors' forked vLLM 0.4.1 codebase with LTR scheduling
+- The authors' forked vLLM 0.4.1 codebase with LTR scheduling (forked from [hao-ai-lab/vllm-ltr](https://github.com/hao-ai-lab/vllm-ltr) at commit [`13bbf6f`](https://github.com/hao-ai-lab/vllm-ltr/commit/13bbf6ff3dab661791d41362551b089e5f77c91c))
 
 ## Repository Structure
 
