@@ -201,7 +201,7 @@ Both trainers save checkpoints and a `usage_config.json` to `vllm-ltr/train/MODE
 If you use this repository, please cite our paper:
 
 ```bibtex
-@inproceedings{sarkar2026itworks,
+@inproceedings{SarkarFund2026ItWorks,
   title={It Works, But Why? A Case Study of Artifact Consumption in Machine Learning Systems},
   author={Sarkar, Ansh and Fund, Fraida},
   booktitle={Proceedings of the ACM Conference on Reproducibility and Replicability (ACM REP '26)},
