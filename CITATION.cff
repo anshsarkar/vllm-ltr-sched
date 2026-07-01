@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite our paper."
+title: "It Works, But Why? A Case Study of Artifact Consumption in Machine Learning Systems"
+type: article
+authors:
+  - family-names: Sarkar
+    given-names: Ansh
+    email: as20363@nyu.edu
+    affiliation: NYU Tandon School of Engineering
+  - family-names: Fund
+    given-names: Fraida
+    email: ffund@nyu.edu
+    affiliation: NYU Tandon School of Engineering
+doi: 10.1145/3820002.3828597
+url: https://github.com/anshsarkar/vllm-ltr-sched
+preferred-citation:
+  type: conference-paper
+  title: "It Works, But Why? A Case Study of Artifact Consumption in Machine Learning Systems"
+  authors:
+    - family-names: Sarkar
+      given-names: Ansh
+    - family-names: Fund
+      given-names: Fraida
+  collection-title: "Proceedings of the ACM Conference on Reproducibility and Replicability (ACM REP '26)"
+  conference:
+    name: "ACM REP '26"
+    date-start: 2026-07-20
+    date-end: 2026-07-22
+    city: Delft
+    country: NL
+  year: 2026
+  doi: 10.1145/3820002.3828597
+  isbn: 979-8-4007-2778-8
